@@ -1148,7 +1148,7 @@ trait FilesAbstraction
         $fileFuture = async(fn () => $this->uploadFromStream(
             new StreamDuplicator($file, $p->getSink()),
             $size,
-            'application/octet-stream',
+            null,
             $fileName ?? '',
             $callback,
             $secret,
@@ -1217,7 +1217,7 @@ trait FilesAbstraction
         $fileFuture = async(fn () => $this->uploadFromStream(
             new StreamDuplicator($file, ...$streams),
             $size,
-            'application/octet-stream',
+            null,
             $fileName ?? '',
             $callback,
             $secret,
@@ -1279,7 +1279,7 @@ trait FilesAbstraction
             async(buffer(...), $process->getStderr(), $cancellation),
         ];
         $streams = [$stdin];
-        if ($mimeType === null || $mimeType === 'application/octet-stream') {
+        if ($mimeType === null) {
             $p = new Pipe(1024*1024);
             $streams []= $p->getSink();
             $f []= async(static function () use ($p, $cancellation, &$mimeType): void {
@@ -1290,7 +1290,7 @@ trait FilesAbstraction
                 $p->getSink()->close();
                 $p->getSource()->close();
 
-                $mimeType = (new finfo())->buffer($buff, FILEINFO_MIME_TYPE) ?? ($mimeType ?? 'application/octet-stream');
+                $mimeType = (new finfo())->buffer($buff, FILEINFO_MIME_TYPE) ?? 'application/octet-stream';
             });
             unset($p);
         }
