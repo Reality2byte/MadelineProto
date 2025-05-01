@@ -444,10 +444,11 @@ final class API extends AbstractAPI
                     $instanceOne->wrapper->logger('More than 10 errors in a second and not inited, exiting!', Logger::FATAL_ERROR);
                     return;
                 }
+                $eOrig = (string) $e;
                 $e = Tools::taintEscape((string) $e);
                 echo $e;
-                $instanceOne->wrapper->logger($e, Logger::FATAL_ERROR);
-                $instanceOne->report("Surfaced: $e");
+                $instanceOne->wrapper->logger($eOrig, Logger::FATAL_ERROR);
+                $instanceOne->report("Surfaced: $eOrig");
             }
         );
 
