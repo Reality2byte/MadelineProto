@@ -51,7 +51,7 @@ final class API extends AbstractAPI
      *
      * @var string
      */
-    public const RELEASE = '8.4.3';
+    public const RELEASE = '8.4.4';
     /**
      * We're not logged in.
      *
@@ -444,8 +444,9 @@ final class API extends AbstractAPI
                     $instanceOne->wrapper->logger('More than 10 errors in a second and not inited, exiting!', Logger::FATAL_ERROR);
                     return;
                 }
+                $e = Tools::taintEscape((string) $e);
                 echo $e;
-                $instanceOne->wrapper->logger((string) $e, Logger::FATAL_ERROR);
+                $instanceOne->wrapper->logger($e, Logger::FATAL_ERROR);
                 $instanceOne->report("Surfaced: $e");
             }
         );

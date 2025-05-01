@@ -56,8 +56,9 @@ abstract class AbstractAPI extends InternalDoc
                     $this->wrapper->logger('More than 10 errors in a second and not inited, exiting!', Logger::FATAL_ERROR);
                     return;
                 }
+                $e = Tools::taintEscape((string) $e);
                 echo $e;
-                $this->wrapper->logger((string) $e, Logger::FATAL_ERROR);
+                $this->wrapper->logger($e, Logger::FATAL_ERROR);
                 $this->report("Surfaced: $e");
             }
         );
