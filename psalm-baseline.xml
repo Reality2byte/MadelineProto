@@ -706,7 +706,7 @@
       <code><![CDATA[$replyTo['reply_to_top_id']]]></code>
       <code><![CDATA[$replyTo['reply_to_top_id']]]></code>
       <code><![CDATA[$this->getClient()->methodCallAsyncRead(
-            DialogId::isSupergroupOrChannel($this->chatId) ? 'channels.getMessages' : 'messages.getMessages',
+            DialogId::isSupergroupOrChannelOrMiniforum($this->chatId) ? 'channels.getMessages' : 'messages.getMessages',
             [
                 'channel' => $this->chatId,
                 'id' => [['_' => 'inputMessageReplyTo', 'id' => $this->id]],
@@ -4675,6 +4675,8 @@
     </MissingReturnType>
     <MixedArgument>
       <code><![CDATA[$constructor['_']]]></code>
+      <code><![CDATA[$constructor['id']]]></code>
+      <code><![CDATA[$constructor['id']]]></code>
       <code><![CDATA[$gres]]></code>
       <code><![CDATA[$gres['participants']]]></code>
       <code><![CDATA[$gres['participants']]]></code>
@@ -4805,8 +4807,6 @@
       <code><![CDATA[$id['_']]]></code>
       <code><![CDATA[$res['admins_count'] ?? 0]]></code>
       <code><![CDATA[($res['participants_count'] ?? 0) + ($res['admins_count'] ?? 0)]]></code>
-      <code><![CDATA[-$constructor['id']]]></code>
-      <code><![CDATA[-$constructor['id']]]></code>
     </MixedOperand>
     <MixedReturnTypeCoercion>
       <code><![CDATA[($type is \danog\MadelineProto\API::INFO_TYPE_ALL ? array{
@@ -7196,7 +7196,10 @@
       <code><![CDATA[$value['_']]]></code>
       <code><![CDATA[$value['_']]]></code>
       <code><![CDATA[$x['_']]]></code>
+      <code><![CDATA[$x['channel_id']]]></code>
+      <code><![CDATA[$x['channel_id']]]></code>
       <code><![CDATA[$x['data']]]></code>
+      <code><![CDATA[$x['id']]]></code>
       <code><![CDATA[$x['id']]]></code>
       <code><![CDATA[$x['result']]]></code>
       <code><![CDATA[-$long_len]]></code>
@@ -7403,7 +7406,6 @@
       <code><![CDATA[$x]]></code>
       <code><![CDATA[$x]]></code>
       <code><![CDATA[$x[$arg['name']]]]></code>
-      <code><![CDATA[$x['channel_id']]]></code>
       <code><![CDATA[[
             'flag' => $flag,
             'name' => $name,
@@ -7443,7 +7445,6 @@
       <code><![CDATA[$values[$bytePos]]]></code>
       <code><![CDATA[$x[$arg['flag']]]]></code>
       <code><![CDATA[$x[$arg['flag']]]]></code>
-      <code><![CDATA[$x['channel_id']]]></code>
       <code><![CDATA[~$pow]]></code>
       <code><![CDATA[~$pow]]></code>
     </MixedOperand>
@@ -7647,9 +7648,6 @@
     <MissingReturnType>
       <code><![CDATA[click]]></code>
     </MissingReturnType>
-    <MixedArgument>
-      <code><![CDATA[$this->button['text']]]></code>
-    </MixedArgument>
     <MixedAssignment>
       <code><![CDATA[$this->label]]></code>
     </MixedAssignment>
