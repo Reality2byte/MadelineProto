@@ -27,7 +27,6 @@ use danog\MadelineProto\EventHandler\Message\Entities\InputMentionName;
 use danog\MadelineProto\EventHandler\Message\Entities\MentionName;
 use danog\MadelineProto\Exception;
 use danog\MadelineProto\Logger;
-use danog\MadelineProto\Magic;
 use danog\MadelineProto\PeerNotInDbException;
 use danog\MadelineProto\RPCError\ChannelPrivateError;
 use danog\MadelineProto\RPCError\ChatAdminRequiredError;
