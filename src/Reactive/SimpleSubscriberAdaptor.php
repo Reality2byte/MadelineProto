@@ -3,8 +3,6 @@
 declare(strict_types=1);
 
 /**
- * Internal loop trait.
- *
  * This file is part of MadelineProto.
  * MadelineProto is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
  * MadelineProto is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
@@ -18,29 +16,32 @@ declare(strict_types=1);
  * @link https://docs.madelineproto.xyz MadelineProto documentation
  */
 
-namespace danog\MadelineProto\Loop;
-
-use danog\MadelineProto\API;
-use danog\MadelineProto\MTProto;
+namespace danog\MadelineProto\Reactive;
 
 /**
  * @internal
+ *
+ * @template T
+ *
+ * @implements Subscriber<T>
  */
-trait InternalLoop
+final class SimpleSubscriberAdaptor implements Subscriber
 {
-    use LoggerLoop;
+    public function __construct(
+        /** @var SimpleSubscriber<T> $subscriber */
+        public readonly SimpleSubscriber $subscriber
+    ) {
+    }
 
-    /**
-     * API instance.
-     */
-    protected MTProto $API;
-    /**
-     * Constructor.
-     *
-     * @param MTProto $API API instance
-     */
-    public function __construct(MTProto $API)
+    #[\Override]
+    public function onAttach($initState): void
     {
-        $this->API = $API;
+        $this->subscriber->onSimpleStateChange($initState);
+    }
+
+    #[\Override]
+    public function onStateChange($prevState, $state): void
+    {
+        $this->subscriber->onSimpleStateChange($state);
     }
 }

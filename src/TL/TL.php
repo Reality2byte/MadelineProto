@@ -813,7 +813,7 @@ final class TL implements TLInterface
      * @param array           $type   Type identifier
      */
     #[\Override]
-    public function getLength($stream, array $type = ['type' => '']): int
+    public function getLength($stream, array $type = ['type' => '', 'connection' => null, 'encrypted' => false]): int
     {
         if (\is_string($stream)) {
             $res = fopen('php://memory', 'rw+b');
@@ -960,10 +960,10 @@ final class TL implements TLInterface
                             gzdecode(
                                 (string) $this->deserialize(
                                     $stream,
-                                    ['type' => 'bytes', 'connection' => $type['connection']],
+                                    ['type' => 'bytes', 'connection' => $type['connection'], 'encrypted' => $type['encrypted']],
                                 ),
                             ),
-                            ['type' => '', 'connection' => $type['connection']],
+                            ['type' => '', 'connection' => $type['connection'], 'encrypted' => $type['encrypted']],
                         );
                     case 'Vector t':
                     case 'vector':
@@ -1012,11 +1012,12 @@ final class TL implements TLInterface
                         ['type' => 'bytes'],
                     ),
                 ),
-                ['type' => '', 'connection' => $type['connection'], 'subtype' => $type['subtype']],
+                ['type' => '', 'connection' => $type['connection'], 'subtype' => $type['subtype'], 'encrypted' => $type['encrypted']],
             );
         }
         if ($constructorData['type'] === 'Vector t') {
             $constructorData['connection'] = $type['connection'];
+            $constructorData['encrypted'] = $type['encrypted'];
             $constructorData['subtype'] = $type['subtype'] ?? '';
             $constructorData['type'] = 'vector';
             return $this->deserialize($stream, $constructorData);
@@ -1028,7 +1029,7 @@ final class TL implements TLInterface
             return false;
         }
         $x = ['_' => $constructorData['predicate']];
-        if (isset($this->beforeConstructorDeserialization[$x['_']])) {
+        if ($type['encrypted'] && isset($this->beforeConstructorDeserialization[$x['_']])) {
             foreach ($this->beforeConstructorDeserialization[$x['_']] as $callback) {
                 $callback($x['_']);
             }
@@ -1045,19 +1046,18 @@ final class TL implements TLInterface
                         }
                 }
             }
-            if ($x['_'] === 'rpc_result' && $arg['name'] === 'result' && isset($type['connection']->outgoing_messages[$x['req_msg_id']])) {
+            if ($x['_'] === 'rpc_result' && $arg['name'] === 'result' && $type['encrypted'] && isset($type['connection']->new_outgoing[$x['req_msg_id']])) {
                 /** @var MTProtoOutgoingMessage */
-                $message = $type['connection']->outgoing_messages[$x['req_msg_id']];
+                $message = $type['connection']->new_outgoing[$x['req_msg_id']];
                 foreach ($this->beforeMethodResponseDeserialization[$message->constructor] ?? [] as $callback) {
-                    $callback($type['connection']->outgoing_messages[$x['req_msg_id']]->constructor);
+                    $callback($message->constructor);
                 }
                 if ($message->subtype) {
                     $arg['subtype'] = $message->subtype;
                 }
             }
-            if (isset($type['connection'])) {
-                $arg['connection'] = $type['connection'];
-            }
+            $arg['connection'] = $type['connection'];
+            $arg['encrypted'] = $type['encrypted'];
             $x[$arg['name']] = $this->deserialize($stream, $arg);
             if ($arg['name'] === 'chat_id' && $arg['type'] === 'long') {
                 $x['chat_id'] = -$x['chat_id'];
@@ -1108,15 +1108,18 @@ final class TL implements TLInterface
         } elseif ($x['_'] === 'photoStrippedSize') {
             $x['inflated'] = new Types\Bytes(Tools::inflateStripped((string) $x['bytes']));
         }
-        if (isset($this->afterConstructorDeserialization[$x['_']])) {
-            foreach ($this->afterConstructorDeserialization[$x['_']] as $callback) {
-                $callback($x);
-            }
-        } elseif ($x['_'] === 'rpc_result'
-            && isset($type['connection']->outgoing_messages[$x['req_msg_id']])
-            && isset($this->afterMethodResponseDeserialization[$type['connection']->outgoing_messages[$x['req_msg_id']]->constructor])) {
-            foreach ($this->afterMethodResponseDeserialization[$type['connection']->outgoing_messages[$x['req_msg_id']]->constructor] as $callback) {
-                $callback($type['connection']->outgoing_messages[$x['req_msg_id']], $x['result']);
+        if ($type['encrypted']) {
+            if (isset($this->afterConstructorDeserialization[$x['_']])) {
+                foreach ($this->afterConstructorDeserialization[$x['_']] as $callback) {
+                    $callback($x);
+                }
+            } elseif ($x['_'] === 'rpc_result'
+                && isset($type['connection']->new_outgoing[$x['req_msg_id']])
+                && isset($this->afterMethodResponseDeserialization[$type['connection']->new_outgoing[$x['req_msg_id']]->constructor])) {
+                $msg = $type['connection']->new_outgoing[$x['req_msg_id']];
+                foreach ($this->afterMethodResponseDeserialization[$msg->constructor] as $callback) {
+                    $callback($msg, $x['result']);
+                }
             }
         }
         /** @psalm-suppress InvalidArgument */

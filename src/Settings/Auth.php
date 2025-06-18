@@ -24,32 +24,27 @@ use danog\MadelineProto\SettingsAbstract;
 final class Auth extends SettingsAbstract
 {
     /**
-     * Whether to use PFS.
-     */
-    protected bool $pfs = true;
-
-    /**
      * Max tries for generating auth key.
      */
     protected int $maxAuthTries = 5;
 
     /**
+     * @deprecated Always true
      * Get whether to use PFS.
      */
     public function getPfs(): bool
     {
-        return $this->pfs;
+        return true;
     }
 
     /**
      * Set whether to use PFS.
      *
+     * @deprecated Always true
      * @param bool $pfs Whether to use PFS
      */
     public function setPfs(bool $pfs): self
     {
-        $this->pfs = $pfs;
-
         return $this;
     }
 

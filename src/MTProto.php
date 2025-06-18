@@ -57,6 +57,8 @@ use danog\MadelineProto\Loop\Generic\PeriodicLoopInternal;
 use danog\MadelineProto\Loop\Update\FeedLoop;
 use danog\MadelineProto\Loop\Update\SeqLoop;
 use danog\MadelineProto\Loop\Update\UpdateLoop;
+use danog\MadelineProto\MTProto\LoginState;
+use danog\MadelineProto\MTProto\SpecialMethodType;
 use danog\MadelineProto\MTProtoTools\AuthKeyHandler;
 use danog\MadelineProto\MTProtoTools\CallHandler;
 use danog\MadelineProto\MTProtoTools\CombinedUpdatesState;
@@ -68,6 +70,7 @@ use danog\MadelineProto\MTProtoTools\PeerHandler;
 use danog\MadelineProto\MTProtoTools\ReferenceDatabase;
 use danog\MadelineProto\MTProtoTools\ResponseInfo;
 use danog\MadelineProto\MTProtoTools\UpdateHandler;
+use danog\MadelineProto\Reactive\Publisher;
 use danog\MadelineProto\Settings\Database\DriverDatabaseAbstract;
 use danog\MadelineProto\Settings\TLSchema;
 use danog\MadelineProto\TL\Conversion\BotAPI;
@@ -208,13 +211,9 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
     /**
      * Whether we're authorized.
      *
-     * @var API::NOT_LOGGED_IN|API::WAITING_*|API::LOGGED_IN|API::LOGGED_OUT
+     * @var Publisher<LoginState>
      */
-    public int $authorized = API::NOT_LOGGED_IN;
-    /**
-     * Main authorized DC ID.
-     */
-    public ?int $authorized_dc = null;
+    public Publisher $loginState;
     /**
      * RSA keys.
      *
@@ -230,6 +229,7 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
     /**
      * CDN RSA keys.
      *
+     * @var array<RSA>
      */
     private array $cdn_rsa_keys = [];
     /**
@@ -296,10 +296,6 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
      *
      */
     public PeerDatabase $peerDatabase;
-    /**
-     * Phone config loop.
-     */
-    public ?PeriodicLoopInternal $phoneConfigLoop = null;
     /**
      * Config loop.
      */
@@ -453,17 +449,24 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
 
     /**
      * @internal
-     * @return array<RSA>
      */
-    public function getRsaKeys(bool $test, bool $cdn): array
+    public function findRsaKey(array $fps, bool $test, bool $cdn): ?RSA
     {
         if ($cdn) {
-            return $this->cdn_rsa_keys;
+            $list = $this->cdn_rsa_keys;
+        } elseif ($test) {
+            $list = $this->test_rsa_keys;
+        } else {
+            $list = $this->rsa_keys;
         }
-        if ($test) {
-            return $this->test_rsa_keys;
+
+        foreach ($list as $curkey) {
+            if (\in_array($curkey->fp, $fps, true)) {
+                return $curkey;
+            }
         }
-        return $this->rsa_keys;
+
+        return null;
     }
     /**
      * Serialize all instances.
@@ -482,7 +485,7 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
         if (self::$references) {
             Logger::log('Prompting final serialization (SHUTDOWN)...');
             foreach (self::$references as $instance) {
-                if ($instance->authorized === API::LOGGED_OUT) {
+                if ($instance->loginState->getState()->state === API::LOGGED_OUT) {
                     continue;
                 }
                 $instance->wrapper->serialize();
@@ -508,6 +511,7 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
         $q = new SplQueue;
         $q->setIteratorMode(SplQueue::IT_MODE_DELETE);
         $this->updateQueue ??= $q;
+        $this->loginState = new Publisher(new LoginState(API::NOT_LOGGED_IN, null));
 
         $initDeferred = new DeferredFuture;
         $this->initPromise = $initDeferred->getFuture();
@@ -657,7 +661,6 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
         $this->startLoops();
         $this->datacenter->currentDatacenter = $this->settings->getConnection()->getTestMode() ? 10002 : 2;
         $this->getConfig();
-        $this->startUpdateSystem(true);
         $this->v = API::RELEASE;
 
         $this->settings->applyChanges();
@@ -754,8 +757,7 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
 
             // Authorization state
             'authorization',
-            'authorized',
-            'authorized_dc',
+            'loginState',
 
             // Authorization cache
             'rsa_keys',
@@ -890,11 +892,9 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
     private function startLoops(): void
     {
         $this->serializeLoop ??= new PeriodicLoopInternal($this, $this->serialize(...), 'serialize', $this->settings->getSerialization()->getInterval());
-        $this->phoneConfigLoop ??= new PeriodicLoopInternal($this, $this->getPhoneConfig(...), 'phone config', 3600);
         $this->configLoop ??= new PeriodicLoopInternal($this, $this->getConfig(...), 'config', 3600);
 
         $this->serializeLoop->start();
-        $this->phoneConfigLoop->start();
         $this->configLoop->start();
         try {
             $this->ipcServer->start();
@@ -913,10 +913,6 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
         if ($this->serializeLoop) {
             $this->serializeLoop->stop();
             $this->serializeLoop = null;
-        }
-        if ($this->phoneConfigLoop) {
-            $this->phoneConfigLoop->stop();
-            $this->phoneConfigLoop = null;
         }
         if ($this->configLoop) {
             $this->configLoop->stop();
@@ -944,6 +940,7 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
                 throw new Exception("Memory profiling is not enabled, set the MEMPROF_PROFILE=1 environment variable or GET parameter to enable it.");
             }
         }
+        $this->loginState ??= new Publisher(new LoginState($this->authorized, $this->authorized_dc));
         $info = $this->getPromGauge("MadelineProto", "version", "Info about the MadelineProto instance");
         $info?->set(1, [
             'php_version' => PHP_VERSION,
@@ -1006,6 +1003,17 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
             $q->setIteratorMode(SplQueue::IT_MODE_DELETE);
             $this->updateQueue = $q;
         }
+        if (isset($this->datacenter)) {
+            $legacy = $this->datacenter->getLegacy();
+            if ($legacy) {
+                $this->datacenter = new DataCenter($this);
+                foreach ($legacy as $dc => $socket) {
+                    $this->datacenter->getDataCenterConnection($dc, $socket);
+                }
+            }
+        } else {
+            $this->datacenter = new DataCenter($this);
+        }
 
         if (isset($this->channels_state)) {
             $this->updateState = new CombinedUpdatesState;
@@ -1031,10 +1039,7 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
         $this->acceptChatMutex ??= new LocalKeyedMutex;
         $this->confirmChatMutex ??= new LocalKeyedMutex;
         $this->updateState ??= new CombinedUpdatesState;
-        $this->datacenter ??= new DataCenter($this);
         $this->snitch ??= new Snitch;
-
-        $this->datacenter->__construct($this);
 
         $this->referenceDatabase ??= new ReferenceDatabase($this);
         $this->minDatabase ??= new MinDatabase($this);
@@ -1054,10 +1059,18 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
         $this->updateState->get(FeedLoop::GENERIC);
         foreach ($this->updateState->get() as $state) {
             $channelId = $state->channelId;
-            $this->feeders[$channelId] ??= new FeedLoop($this, $channelId);
-            $this->updaters[$channelId] ??= new UpdateLoop($this, $channelId);
+            $feeder = $this->feeders[$channelId] ??= new FeedLoop($this, $channelId);
+            $updater = $this->updaters[$channelId] ??= new UpdateLoop($this, $channelId);
+
+            $this->loginState->subscribe($feeder);
+            $this->loginState->subscribe($updater);
         }
         $this->seqUpdater ??= new SeqLoop($this);
+        $this->loginState->subscribe($this->seqUpdater);
+
+        foreach ($this->secretChats as $chat) {
+            $chat->wakeupFeedLoop();
+        }
     }
 
     /** @internal */
@@ -1079,12 +1092,6 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
     private function upgradeMadelineProto(): void
     {
         $this->logger->logger(Lang::$current_lang['serialization_ofd'], Logger::WARNING);
-        foreach ($this->datacenter->getDataCenterConnections() as $dc_id => $socket) {
-            if ($this->authorized === API::LOGGED_IN && \is_int($dc_id) && $socket->hasPermAuthKey() && $socket->hasTempAuthKey()) {
-                $socket->bind();
-                $socket->authorized(true);
-            }
-        }
         $this->settings->setSchema(new TLSchema);
 
         $this->resetMTProtoSession("upgrading madelineproto", true, true);
@@ -1168,9 +1175,11 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
             if ($this->settings->getDb()->getEnableMinDb() && !($this->authorization['user']['bot'] ?? false)) {
                 $callbacks[] = $this->minDatabase;
             }
+
+            $this->loginState->wakeup();
+
             // Connect to all DCs, start internal loops
             if ($this->fullGetSelf()) {
-                $this->authorized = API::LOGGED_IN;
                 $this->setupLogger();
                 $this->startLoops();
                 $this->getCdnConfig();
@@ -1181,13 +1190,17 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
             if ($this->event_handler && class_exists($this->event_handler) && is_subclass_of($this->event_handler, EventHandler::class)) {
                 $this->setEventHandler($this->event_handler);
             }
-            $this->startUpdateSystem(true);
-            $this->cacheFullDialogs();
-            if ($this->authorized === API::LOGGED_IN) {
-                $this->logger->logger("Obtaining updates after deserialization...", Logger::NOTICE);
-                $this->updaters[UpdateLoop::GENERIC]->resume();
+
+            if ($this->event_handler_instance instanceof EventHandler
+                && $f = $this->event_handler_instance->waitForInternalStart()
+            ) {
+                $f->map(function (): void {
+                    foreach ($this->updateQueue as $update) {
+                        $this->handleUpdate($update);
+                    }
+                });
             }
-            $this->updaters[UpdateLoop::GENERIC]->start();
+            $this->cacheFullDialogs();
 
             foreach ($this->broadcasts as $broadcast) {
                 $broadcast->resume();
@@ -1229,9 +1242,7 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
             $this->seqUpdater->stop();
         }
         if (isset($this->updateState)) {
-            $channelIds = array_keys($this->updateState->get());
-            sort($channelIds);
-            foreach ($channelIds as $channelId) {
+            foreach ($this->updateState->get() as $channelId => $_) {
                 if (isset($this->feeders[$channelId])) {
                     $this->feeders[$channelId]->stop();
                 }
@@ -1246,9 +1257,6 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
             }
         }
         $this->logger->logger('Unreferenced instance');
-        if ($this->authorized === API::LOGGED_OUT) {
-            $this->wrapper->getSession()->delete();
-        }
     }
     /** @internal */
     public function isCdn(int $dc): bool
@@ -1265,6 +1273,14 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
         $this->logger('Shutting down MadelineProto (MTProto)');
         $this->unreference();
         $this->logger('Successfully destroyed MadelineProto');
+    }
+    /**
+     * @internal
+     * @param API::NOT_LOGGED_IN|API::WAITING_*|API::LOGGED_IN|API::LOGGED_OUT $state
+     */
+    public function setLoginState(int $state): void
+    {
+        $this->loginState->publish($this->loginState->getState()->setState($state));
     }
     /**
      * @internal
@@ -1411,7 +1427,7 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
                 $socket->resetSession("resetMTProtoSession: $why");
             }
             if ($auth_key) {
-                $socket->setTempAuthKey(null);
+                $socket->auth->setTempAuthKey(null, null);
             }
         }
     }
@@ -1442,65 +1458,14 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
             }
         }
         $this->updateState = $new;
-        $this->startUpdateSystem();
-    }
-    /**
-     * Start the update system.
-     *
-     * @param boolean $anyway Force start update system?
-     * @internal
-     */
-    public function startUpdateSystem(bool $anyway = false): void
-    {
-        if (!$this->isInited() && !$anyway) {
-            $this->logger('Not starting update system');
-            return;
-        }
-        $this->logger('Starting update system');
-        $this->updateState->get(FeedLoop::GENERIC);
-        $channelIds = array_keys($this->updateState->get());
-        foreach ($channelIds as $channelId) {
-            $this->feeders[$channelId] ??= new FeedLoop($this, $channelId);
-            $this->updaters[$channelId] ??= new UpdateLoop($this, $channelId);
-            $this->feeders[$channelId]->start();
-            if (isset($this->feeders[$channelId])) {
-                $this->feeders[$channelId]->resume();
-            }
-            $this->updaters[$channelId]->start();
-            if (isset($this->updaters[$channelId])) {
-                $this->updaters[$channelId]->resume();
-            }
-        }
-        $this->seqUpdater->start();
-        $this->seqUpdater->resume();
-        foreach ($this->secretChats as $chat) {
-            $chat->startFeedLoop();
-        }
 
-        if ($this->event_handler_instance instanceof EventHandler
-            && $f = $this->event_handler_instance->waitForInternalStart()
-        ) {
-            $f->map(function (): void {
-                foreach ($this->updateQueue as $update) {
-                    $this->handleUpdate($update);
-                }
-            });
-        }
-    }
-    /**
-     * Store shared phone config.
-     *
-     * @param mixed $watcherId Watcher ID
-     * @internal
-     */
-    public function getPhoneConfig(mixed $watcherId = null): void
-    {
-        if ($this->authorized === API::LOGGED_IN
-            && class_exists(VoIPServerConfigInternal::class)
-            && !$this->authorization['user']['bot']
-            && $this->datacenter->getDataCenterConnection($this->authorized_dc)->hasTempAuthKey()) {
-            $this->logger->logger('Fetching phone config...');
-            VoIPServerConfig::updateDefault($this->methodCallAsyncRead('phone.getCallConfig', []));
+        foreach ($channelIds as $channelId) {
+            if (isset($this->feeders[$channelId])) {
+                $this->feeders[$channelId]->start();
+            }
+            if (isset($this->updaters[$channelId])) {
+                $this->updaters[$channelId]->start();
+            }
         }
     }
     /**
@@ -1509,7 +1474,7 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
     public function getCdnConfig(): void
     {
         try {
-            foreach (($this->methodCallAsyncRead('help.getCdnConfig', [], $this->authorized_dc))['public_keys'] as $curkey) {
+            foreach (($this->methodCallAsyncRead('help.getCdnConfig', [], $this->loginState->getState()->authorizedDc))['public_keys'] as $curkey) {
                 $curkey = RSA::load($this->TL, $curkey['public_key']);
                 $this->cdn_rsa_keys[$curkey->fp] = $curkey;
             }
@@ -1622,7 +1587,7 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
     public function fullGetSelf(): array|false
     {
         try {
-            $this->authorization = ['user' => ($this->methodCallAsyncRead('users.getUsers', ['id' => [['_' => 'inputUserSelf']]]))[0]];
+            $this->authorization = ['user' => ($this->methodCallAsyncRead('users.getUsers', ['id' => [['_' => 'inputUserSelf']], 'specialMethodType' => SpecialMethodType::USER_RELATED]))[0]];
         } catch (RPCErrorException $e) {
             $this->logger->logger($e->getMessage());
             return false;
@@ -1636,14 +1601,14 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
      */
     public function getAuthorization(): int
     {
-        return $this->authorized;
+        return $this->loginState->getState()->state;
     }
     /**
      * Get current password hint.
      */
     public function getHint(): string
     {
-        if ($this->authorized !== API::WAITING_PASSWORD) {
+        if ($this->loginState->getState()->state !== API::WAITING_PASSWORD) {
             throw new Exception('Not waiting for the password!');
         }
         Assert::string($this->authorization['hint']);
@@ -2078,9 +2043,14 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
         return ['_' => 'inputDialogPeer', 'peer' => $this->getInputPeer($id)];
     }
     /** @internal */
+    public function getPassword(): array
+    {
+        return $this->methodCallAsyncRead('account.getPassword', ['specialMethodType' => SpecialMethodType::USER_RELATED]);
+    }
+    /** @internal */
     public function getPasswordSRP(string $password): array
     {
-        return (new PasswordCalculator($this->methodCallAsyncRead('account.getPassword', [], $this->authorized_dc)))->getCheckPassword($password);
+        return (new PasswordCalculator($this->getPassword()))->getCheckPassword($password);
     }
     /**
      * Get debug information for var_dump.

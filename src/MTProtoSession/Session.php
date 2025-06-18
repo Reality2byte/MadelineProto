@@ -25,10 +25,12 @@ use danog\BetterPrometheus\BetterCounter;
 use danog\BetterPrometheus\BetterGauge;
 use danog\BetterPrometheus\BetterHistogram;
 use danog\MadelineProto\Logger;
+use danog\MadelineProto\MTProto\LinkedList;
 use danog\MadelineProto\MTProto\MTProtoIncomingMessage;
 use danog\MadelineProto\MTProto\MTProtoOutgoingMessage;
 use danog\MadelineProto\Tools;
 use SplQueue;
+use WeakMap;
 
 /**
  * Manages MTProto session-specific data.
@@ -38,7 +40,6 @@ use SplQueue;
 trait Session
 {
     use AuthKeyHandler;
-    use AckHandler;
     use ResponseHandler;
     use SeqNoHandler;
     use CallHandler;
@@ -58,13 +59,13 @@ trait Session
      *
      * @var array<MTProtoIncomingMessage>
      */
-    public array $incoming_messages = [];
+    //public array $incoming_messages = [];
     /**
      * Outgoing message array.
      *
      * @var array<MTProtoOutgoingMessage>
      */
-    public array $outgoing_messages = [];
+    //public array $outgoing_messages = [];
     /**
      * New incoming message ID array.
      *
@@ -78,32 +79,48 @@ trait Session
      */
     public array $new_outgoing = [];
     /**
-     * Pending outgoing messages.
+     * New unencrypted outgoing message array.
      *
      * @var array<MTProtoOutgoingMessage>
      */
-    public array $pendingOutgoing = [];
+    public array $unencrypted_new_outgoing = [];
+
     /**
-     * Pending outgoing key.
-     *
+     * Pending outgoing messages.
      */
-    public int $pendingOutgoingKey = 0;
+    public LinkedList $unencryptedPendingOutgoing;
+    /**
+     * Pending outgoing messages.
+     */
+    public LinkedList $uninitedPendingOutgoing;
+    /**
+     * Pending outgoing messages.
+     */
+    public LinkedList $mainPendingOutgoing;
+
     /**
      * Time delta with server.
      *
      */
     public int $time_delta = 0;
     /**
-     * Call queue.
-     *
-     * @var array<string, MTProtoOutgoingMessage>
-     */
-    public array $callQueue = [];
-    /**
      * Ack queue.
      *
+     * @var list<int>
      */
     public array $ack_queue = [];
+    /**
+     * Check queue.
+     *
+     * @var WeakMap<MTProtoOutgoingMessage, true>
+     */
+    public WeakMap $check_queue;
+    /**
+     * Check queue.
+     *
+     * @var WeakMap<MTProtoOutgoingMessage, true>
+     */
+    public WeakMap $unencrypted_check_queue;
     /**
      * Message ID handler.
      *
@@ -124,7 +141,7 @@ trait Session
             $q->setIteratorMode(SplQueue::IT_MODE_DELETE);
             $this->new_incoming = $q;
         }
-        foreach ($this->outgoing_messages as &$msg) {
+        foreach ($this->new_outgoing as $msg) {
             if ($msg->hasMsgId()) {
                 $msg->setMsgId(null);
             }
@@ -138,46 +155,17 @@ trait Session
      */
     public function cleanupSession(): void
     {
-        $count = 0;
-        $incoming = [];
-        foreach ($this->incoming_messages as $key => $message) {
-            if ($message->canGarbageCollect()) {
-                $count++;
-            } else {
-                $this->API->logger("Can't garbage collect $message in DC {$this->datacenter}, not handled yet!", Logger::VERBOSE);
-                $incoming[$key] = $message;
-            }
-        }
-        $this->incoming_messages = $incoming;
-        $total = \count($this->incoming_messages);
-        if ($count+$total) {
-            $this->API->logger("Garbage collected $count incoming messages in DC {$this->datacenter}, $total left", Logger::VERBOSE);
-        }
-
-        $count = 0;
-        $outgoing = [];
-        foreach ($this->outgoing_messages as $key => $message) {
-            if ($message->canGarbageCollect()) {
-                $count++;
-            } else {
-                $ago = (hrtime(true) - $message->getSent()) / 1_000_000_000;
-                if ($ago > 2) {
-                    $this->API->logger("Can't garbage collect $message in DC {$this->datacenter}, no response has been received or it wasn't yet handled!", Logger::VERBOSE);
-                }
-                $outgoing[$key] = $message;
-            }
-        }
-        $this->outgoing_messages = $outgoing;
-        $total = \count($this->outgoing_messages);
-        if ($count+$total) {
-            $this->API->logger("Garbage collected $count outgoing messages in DC {$this->datacenter}, $total left", Logger::VERBOSE);
-        }
-
         $new_outgoing = [];
         foreach ($this->new_outgoing as $key => $message) {
             $new_outgoing[$key] = $message;
         }
         $this->new_outgoing = $new_outgoing;
+
+        $unencrypted_new_outgoing = [];
+        foreach ($this->unencrypted_new_outgoing as $key => $message) {
+            $unencrypted_new_outgoing[$key] = $message;
+        }
+        $this->unencrypted_new_outgoing = $unencrypted_new_outgoing;
     }
     /**
      * Create MTProto session if needed.
@@ -214,6 +202,11 @@ trait Session
                 10000_000_000,
             ]
         );
+        $this->mainPendingOutgoing ??= new LinkedList;
+        $this->unencryptedPendingOutgoing ??= new LinkedList;
+        $this->uninitedPendingOutgoing ??= new LinkedList;
+        $this->check_queue ??= new WeakMap;
+        $this->unencrypted_check_queue ??= new WeakMap;
         if ($this->session_id === null) {
             $this->resetSession("creating initial session");
         }
@@ -226,7 +219,16 @@ trait Session
      */
     public function backupSession(): array
     {
-        $pending = array_values($this->pendingOutgoing);
-        return array_merge($pending, $this->new_outgoing);
+        $pending = [];
+        $message = $this->mainPendingOutgoing;
+        while (true) {
+            $message = $message->prev;
+            if ($message === $this->mainPendingOutgoing) {
+                break;
+            }
+            \assert($message instanceof MTProtoOutgoingMessage);
+            $pending []= $message;
+        }
+        return array_merge($pending, $this->new_outgoing, $this->unencrypted_new_outgoing);
     }
 }

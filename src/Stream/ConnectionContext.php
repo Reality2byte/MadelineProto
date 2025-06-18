@@ -22,7 +22,6 @@ namespace danog\MadelineProto\Stream;
 
 use Amp\Cancellation;
 use Amp\Socket\ConnectContext;
-use danog\MadelineProto\DataCenter;
 use danog\MadelineProto\Stream\MTProtoTransport\HttpsStream;
 use danog\MadelineProto\Stream\MTProtoTransport\HttpStream;
 use danog\MadelineProto\Stream\MTProtoTransport\ObfuscatedStream;
@@ -51,16 +50,6 @@ final class ConnectionContext
      *
      */
     private bool $test = false;
-    /**
-     * Whether to use media servers.
-     *
-     */
-    private bool $media = false;
-    /**
-     * Whether to use CDN servers.
-     *
-     */
-    private bool $cdn = false;
     /**
      * The connection URI.
      *
@@ -162,33 +151,11 @@ final class ConnectionContext
         return clone $this;
     }
     /**
-     * Set the CDN boolean.
-     */
-    public function setCDN(bool $cdn): self
-    {
-        $this->cdn = $cdn;
-        return $this;
-    }
-    /**
      * Whether this is a test connection.
      */
     public function isTest(): bool
     {
         return $this->test;
-    }
-    /**
-     * Whether this is a media connection.
-     */
-    public function isMedia(): bool
-    {
-        return $this->media;
-    }
-    /**
-     * Whether this is a CDN connection.
-     */
-    public function isCDN(): bool
-    {
-        return $this->cdn;
     }
     /**
      * Whether this connection context will only be used by the DNS client.
@@ -227,8 +194,6 @@ final class ConnectionContext
     public function setDc(int $dc): self
     {
         $this->dc = $dc;
-        $this->media = DataCenter::isMedia($dc);
-        $this->test = DataCenter::isTest($dc);
         return $this;
     }
     /**

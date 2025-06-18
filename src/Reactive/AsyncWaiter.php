@@ -3,8 +3,6 @@
 declare(strict_types=1);
 
 /**
- * Internal loop trait.
- *
  * This file is part of MadelineProto.
  * MadelineProto is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
  * MadelineProto is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
@@ -18,29 +16,50 @@ declare(strict_types=1);
  * @link https://docs.madelineproto.xyz MadelineProto documentation
  */
 
-namespace danog\MadelineProto\Loop;
+namespace danog\MadelineProto\Reactive;
 
-use danog\MadelineProto\API;
-use danog\MadelineProto\MTProto;
+use Amp\Cancellation;
+use Amp\DeferredFuture;
 
 /**
- * @internal
+ * @template T
+ *
+ * @implements Subscriber<T>
  */
-trait InternalLoop
+final class AsyncWaiter implements Subscriber
 {
-    use LoggerLoop;
+    /** @var DeferredFuture<T> */
+    private readonly DeferredFuture $future;
+    public function __construct(
+        /** @var T */
+        private readonly mixed $waitFor
+    ) {
+        $this->future = new DeferredFuture;
+    }
 
-    /**
-     * API instance.
-     */
-    protected MTProto $API;
-    /**
-     * Constructor.
-     *
-     * @param MTProto $API API instance
-     */
-    public function __construct(MTProto $API)
+    public function __sleep()
     {
-        $this->API = $API;
+        return [];
+    }
+
+    #[\Override]
+    public function onAttach($initState): void
+    {
+        if ($initState === $this->waitFor) {
+            $this->future->complete();
+        }
+    }
+
+    #[\Override]
+    public function onStateChange($prevState, $state): void
+    {
+        if ($state === $this->waitFor) {
+            $this->future->complete();
+        }
+    }
+
+    public function wait(?Cancellation $cancellation): void
+    {
+        $this->future->getFuture()->await($cancellation);
     }
 }

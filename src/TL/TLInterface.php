@@ -65,7 +65,7 @@ interface TLInterface
      * @param resource|string $stream Stream
      * @param array           $type   Type identifier
      */
-    public function getLength($stream, array $type = ['type' => '']): int;
+    public function getLength($stream, array $type = ['type' => '', 'connection' => null, 'encrypted' => false]): int;
     /**
      * Deserialize TL object.
      *

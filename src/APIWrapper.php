@@ -76,13 +76,13 @@ final class APIWrapper
         return $this->API;
     }
 
-    private ?int $drop = null;
+    private ?float $drop = null;
     /**
      * @internal
      */
     public function getRpcDropCancellation(): Cancellation
     {
-        return new TimeoutCancellation($this->drop ??= $this->getAPI()->getSettings()->getRpc()->getRpcDropTimeout());
+        return new TimeoutCancellation($this->drop ??= (float) $this->getAPI()->getSettings()->getRpc()->getRpcDropTimeout());
     }
 
     /**
@@ -109,7 +109,7 @@ final class APIWrapper
         $this->API->waitForInit();
         $API = $this->API;
 
-        if ($API->authorized === API::LOGGED_OUT) {
+        if ($API->getAuthorization() === API::LOGGED_OUT) {
             return false;
         }
 

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Internal loop trait.
+ * MTProto Auth key.
  *
  * This file is part of MadelineProto.
  * MadelineProto is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
@@ -18,29 +18,37 @@ declare(strict_types=1);
  * @link https://docs.madelineproto.xyz MadelineProto documentation
  */
 
-namespace danog\MadelineProto\Loop;
+namespace danog\MadelineProto\MTProto;
 
 use danog\MadelineProto\API;
-use danog\MadelineProto\MTProto;
+use Webmozart\Assert\Assert;
 
-/**
- * @internal
- */
-trait InternalLoop
+/** @internal */
+final class LoginState
 {
-    use LoggerLoop;
+    public function __construct(
+        /** @var API::NOT_LOGGED_IN|API::WAITING_*|API::LOGGED_IN|API::LOGGED_OUT */
+        public readonly int $state,
+        public readonly ?int $authorizedDc,
+    ) {
+        if ($state === API::LOGGED_IN) {
+            Assert::notNull($authorizedDc, 'If state is LOGGED_IN, authorizedDc must not be null');
+        }
+    }
 
-    /**
-     * API instance.
-     */
-    protected MTProto $API;
-    /**
-     * Constructor.
-     *
-     * @param MTProto $API API instance
-     */
-    public function __construct(MTProto $API)
+    /** @param API::NOT_LOGGED_IN|API::WAITING_*|API::LOGGED_IN|API::LOGGED_OUT $state */
+    public function setState(int $state): self
     {
-        $this->API = $API;
+        if ($state === $this->state) {
+            return $this;
+        }
+        return new self($state, $this->authorizedDc);
+    }
+    public function setDc(int $dc): self
+    {
+        if ($dc === $this->authorizedDc) {
+            return $this;
+        }
+        return new self($this->state, $dc);
     }
 }

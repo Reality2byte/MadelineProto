@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Internal loop trait.
+ * MTProto Auth key.
  *
  * This file is part of MadelineProto.
  * MadelineProto is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
@@ -18,29 +18,31 @@ declare(strict_types=1);
  * @link https://docs.madelineproto.xyz MadelineProto documentation
  */
 
-namespace danog\MadelineProto\Loop;
+namespace danog\MadelineProto\MTProto;
 
-use danog\MadelineProto\API;
-use danog\MadelineProto\MTProto;
-
-/**
- * @internal
- */
-trait InternalLoop
+/** @internal */
+enum ConnectionState
 {
-    use LoggerLoop;
+    case UNENCRYPTED_MEDIA_WAITING_MAIN;
+    case UNENCRYPTED_NO_PERMANENT;
+    case UNENCRYPTED;
+    case ENCRYPTED_NOT_BOUND;
+    case ENCRYPTED_NOT_INITED;
+    case ENCRYPTED_NOT_AUTHED_NO_LOGIN;
+    case ENCRYPTED_NOT_AUTHED;
+    case ENCRYPTED;
 
-    /**
-     * API instance.
-     */
-    protected MTProto $API;
-    /**
-     * Constructor.
-     *
-     * @param MTProto $API API instance
-     */
-    public function __construct(MTProto $API)
+    public function isEncrypted(): bool
     {
-        $this->API = $API;
+        return match ($this) {
+            self::UNENCRYPTED_MEDIA_WAITING_MAIN,
+            self::UNENCRYPTED_NO_PERMANENT,
+            self::UNENCRYPTED => false,
+            self::ENCRYPTED_NOT_INITED,
+            self::ENCRYPTED_NOT_BOUND,
+            self::ENCRYPTED_NOT_AUTHED_NO_LOGIN,
+            self::ENCRYPTED_NOT_AUTHED,
+            self::ENCRYPTED => true,
+        };
     }
 }

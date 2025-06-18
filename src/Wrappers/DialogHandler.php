@@ -23,6 +23,7 @@ namespace danog\MadelineProto\Wrappers;
 use Amp\Sync\LocalMutex;
 use danog\MadelineProto\API;
 use danog\MadelineProto\Exception;
+use danog\MadelineProto\MTProto\SpecialMethodType;
 use danog\MadelineProto\Settings;
 use danog\MadelineProto\Tools;
 use Revolt\EventLoop;
@@ -71,6 +72,7 @@ trait DialogHandler
                         ...$this->botDialogsUpdatesState,
                         'pts_total_limit' => 2147483647,
                         'floodWaitLimit' => 86400,
+                        'specialMethodType' => SpecialMethodType::USER_RELATED,
                     ],
                 );
                 switch ($result['_']) {
@@ -157,7 +159,7 @@ trait DialogHandler
     private ?LocalMutex $cacheFullDialogsMutex = null;
     private function cacheFullDialogs(): bool
     {
-        if ($this->authorized === API::LOGGED_IN && !$this->authorization['user']['bot'] && $this->settings->getPeer()->getCacheAllPeersOnStartup() && !$this->fetchedFullDialogs) {
+        if ($this->loginState->getState()->state === API::LOGGED_IN && !$this->authorization['user']['bot'] && $this->settings->getPeer()->getCacheAllPeersOnStartup() && !$this->fetchedFullDialogs) {
             $this->cacheFullDialogsMutex ??= new LocalMutex;
             $lock = $this->cacheFullDialogsMutex->acquire();
             try {

@@ -27,14 +27,16 @@ use Amp\Sync\LocalMutex;
 use AssertionError;
 use danog\DialogId\DialogId;
 use danog\Loop\GenericLoop;
-use danog\MadelineProto\Loop\Connection\CheckLoop;
 use danog\MadelineProto\Loop\Connection\CleanupLoop;
-use danog\MadelineProto\Loop\Connection\HttpWaitLoop;
 use danog\MadelineProto\Loop\Connection\PingLoop;
 use danog\MadelineProto\Loop\Connection\ReadLoop;
 use danog\MadelineProto\Loop\Connection\WriteLoop;
+use danog\MadelineProto\MTProto\ConnectionState;
+use danog\MadelineProto\MTProto\MTProtoIncomingMessage;
 use danog\MadelineProto\MTProto\MTProtoOutgoingMessage;
+use danog\MadelineProto\MTProto\SpecialMethodType;
 use danog\MadelineProto\MTProtoSession\Session;
+use danog\MadelineProto\Reactive\Publisher;
 use danog\MadelineProto\Stream\BufferedStreamInterface;
 use danog\MadelineProto\Stream\ConnectionContext;
 use danog\MadelineProto\Stream\MTProtoBufferInterface;
@@ -73,20 +75,10 @@ final class Connection
      */
     protected ?ReadLoop $reader = null;
     /**
-     * Checker loop.
-     *
-     */
-    protected ?CheckLoop $checker = null;
-    /**
-     * Waiter loop.
-     *
-     */
-    protected ?HttpWaitLoop $waiter = null;
-    /**
      * Ping loop.
      *
      */
-    protected ?PingLoop $pinger = null;
+    public ?PingLoop $pinger = null;
     /**
      * Cleanup loop.
      *
@@ -250,20 +242,12 @@ final class Connection
     {
         return $this->chosenCtx->isHttp();
     }
-    /**
-     * Check if is a media connection.
-     */
-    public function isMedia(): bool
+    /** @return Publisher<ConnectionState> */
+    public function getState(): Publisher
     {
-        return DataCenter::isMedia($this->datacenter);
+        return $this->shared->auth->connectionState;
     }
-    /**
-     * Check if is a CDN connection.
-     */
-    public function isCDN(): bool
-    {
-        return $this->API->isCDN($this->datacenter);
-    }
+
     private ?LocalMutex $connectMutex = null;
     /**
      * Connects to a telegram DC using the specified protocol, proxy and connection parameters.
@@ -301,32 +285,24 @@ final class Connection
                 $this->httpResCount = 0;
                 $this->writer ??= new WriteLoop($this);
                 $this->reader ??= new ReadLoop($this);
-                $this->checker ??= new CheckLoop($this);
                 $this->cleanup ??= new CleanupLoop($this);
-                $this->waiter ??= new HttpWaitLoop($this);
-                $this->handler ??= new GenericLoop(fn () => $this->handleMessages($this->new_incoming), "Handler loop");
-                if (!isset($this->pinger) && !$ctx->isMedia() && !$ctx->isCDN() && !$this->isHttp()) {
+                $this->handler ??= new GenericLoop(function (): void {
+                    $this->handleMessages($this->new_incoming);
+                    if ($this->ack_queue) {
+                        $this->flush(); // Flush acks
+                    }
+                }, "Handler loop");
+                if (!isset($this->pinger) && !$this->shared->auth->isMedia && !$this->shared->auth->isCdn && !$this->isHttp()) {
                     $this->pinger = new PingLoop($this);
                 }
-                foreach ($this->new_outgoing as $message_id => $message) {
-                    if ($message->unencrypted) {
-                        if (!($message->getState() & MTProtoOutgoingMessage::STATE_REPLIED)) {
-                            $message->reply(static fn () => new Exception('Restart because we were reconnected'));
-                        }
-                        unset($this->new_outgoing[$message_id], $this->outgoing_messages[$message_id]);
-                    }
+                foreach ($this->unencrypted_new_outgoing as $message) {
+                    $message->reply(static fn () => new Exception('Restart because we were reconnected'));
                 }
                 Assert::true($this->writer->start(), "Could not start writer stream");
                 Assert::true($this->reader->start(), "Could not start reader stream");
-                Assert::true($this->checker->start(), "Could not start checker stream");
                 Assert::true($this->cleanup->start(), "Could not start cleanup stream");
-                $this->waiter->start();
-                if ($this->pinger) {
-                    Assert::true($this->pinger->start(), "Could not start pinger stream");
-                }
                 $this->handler->start();
 
-                EventLoop::queue($this->shared->initAuthorization(...));
                 return $this;
             }
             throw new AssertionError("Could not connect to DC {$this->datacenterId}!");
@@ -334,8 +310,9 @@ final class Connection
             EventLoop::queue($lock->release(...));
         }
     }
-    public function wakeupHandler(): void
+    public function wakeupHandler(MTProtoIncomingMessage $message): void
     {
+        $this->new_incoming->enqueue($message);
         \assert($this->handler !== null);
         Assert::true($this->handler->resume() || $this->handler->isRunning(), "Could not resume handler!");
     }
@@ -542,6 +519,7 @@ final class Connection
      */
     public function sendMessage(MTProtoOutgoingMessage $message): void
     {
+        $message->connection = $this;
         $message->trySend();
         $promise = $message->getSendPromise();
         if (!$message->hasSerializedBody() || $message->shouldRefreshReferences()) {
@@ -575,13 +553,15 @@ final class Connection
             $message->setSerializedBody($body);
             unset($body);
         }
-        $this->pendingOutgoing[$this->pendingOutgoingKey++] = $message;
-        $this->outgoingCtr?->inc();
-        $this->pendingOutgoingGauge?->set(\count($this->pendingOutgoing));
-        if (isset($this->writer)) {
-            $this->writer->resume();
-        }
         $this->connect();
+        if ($message->unencrypted) {
+            $this->unencryptedPendingOutgoing->enqueue($message);
+        } elseif ($message->specialMethodType === SpecialMethodType::UNAUTHED_METHOD) {
+            $this->uninitedPendingOutgoing->enqueue($message);
+        } else {
+            $this->mainPendingOutgoing->enqueue($message);
+        }
+        $this->flush();
         $promise->await();
     }
     /**
@@ -591,18 +571,6 @@ final class Connection
     {
         if (isset($this->writer)) {
             $this->writer->resume();
-        }
-    }
-    /**
-     * Resume HttpWaiter.
-     */
-    public function pingHttpWaiter(): void
-    {
-        if (isset($this->waiter)) {
-            $this->waiter->resume();
-        }
-        if (isset($this->pinger)) {
-            $this->pinger->resume();
         }
     }
     /**
@@ -655,9 +623,8 @@ final class Connection
 
         $this->reader?->stop();
         $this->writer?->stop();
-        $this->checker?->stop();
-        $this->cleanup?->stop();
         $this->pinger?->stop();
+        $this->cleanup?->stop();
 
         if (!$temporary) {
             $this->shared->signalDisconnect($this->id);

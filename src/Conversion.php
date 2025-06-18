@@ -43,7 +43,6 @@ final class Conversion
         }
         $settings = $settingsFull;
         $settings->getLogger()->setLevel(Logger::ULTRA_VERBOSE);
-        $settings->getAuth()->setPfs(true);
         $MadelineProto = new API($session, $settings);
         /** @var APIWrapper */
         $wrapper = Tools::getVar($MadelineProto, 'wrapper');

@@ -441,6 +441,9 @@
     </PossiblyUndefinedVariable>
   </file>
   <file src="src/DataCenter.php">
+    <DeprecatedProperty>
+      <code><![CDATA[$this->sockets]]></code>
+    </DeprecatedProperty>
     <DocblockTypeContradiction>
       <code><![CDATA[\is_string($dc)]]></code>
     </DocblockTypeContradiction>
@@ -498,36 +501,43 @@
       <code><![CDATA[$default[2]]]></code>
       <code><![CDATA[$default[2]]]></code>
     </PossiblyUndefinedArrayOffset>
+    <PropertyNotSetInConstructor>
+      <code><![CDATA[$dohWrapper]]></code>
+    </PropertyNotSetInConstructor>
+    <TooManyArguments>
+      <code><![CDATA[new DataCenterConnection($this->API, $dc, $legacy)]]></code>
+    </TooManyArguments>
   </file>
   <file src="src/DataCenterConnection.php">
-    <MissingConstructor>
-      <code><![CDATA[$API]]></code>
-      <code><![CDATA[$connectionsPromise]]></code>
-      <code><![CDATA[$datacenter]]></code>
-    </MissingConstructor>
+    <DeprecatedProperty>
+      <code><![CDATA[$legacy->permAuthKey]]></code>
+    </DeprecatedProperty>
     <MixedArgument>
-      <code><![CDATA[$aes_iv]]></code>
-      <code><![CDATA[$aes_key]]></code>
-      <code><![CDATA[$exported_authorization]]></code>
+      <code><![CDATA[$e]]></code>
       <code><![CDATA[$message_data]]></code>
     </MixedArgument>
+    <MixedArrayAssignment>
+      <code><![CDATA[$e['specialMethodType']]]></code>
+    </MixedArrayAssignment>
     <MixedAssignment>
-      <code><![CDATA[$exported_authorization]]></code>
+      <code><![CDATA[$e]]></code>
       <code><![CDATA[$message_data]]></code>
+      <code><![CDATA[$method]]></code>
       <code><![CDATA[$res]]></code>
     </MixedAssignment>
+    <PossiblyNullArgument>
+      <code><![CDATA[$this->API->loginState]]></code>
+    </PossiblyNullArgument>
+    <PossiblyNullOperand>
+      <code><![CDATA[$this->auth->getID()]]></code>
+    </PossiblyNullOperand>
     <PossiblyNullReference>
-      <code><![CDATA[bind]]></code>
+      <code><![CDATA[getState]]></code>
     </PossiblyNullReference>
-    <RedundantConditionGivenDocblockType>
-      <code><![CDATA[$authorized_socket->hasTempAuthKey()
-                    && $authorized_socket->hasPermAuthKey()
-                    && $authorized_socket->isAuthorized()
-                    && $this->API->authorized === \danog\MadelineProto\API::LOGGED_IN]]></code>
-    </RedundantConditionGivenDocblockType>
-    <UnsupportedPropertyReferenceUsage>
-      <code><![CDATA[$this->permAuthKey =& $connection->permAuthKey]]></code>
-    </UnsupportedPropertyReferenceUsage>
+    <PropertyNotSetInConstructor>
+      <code><![CDATA[$connectionsPromise]]></code>
+      <code><![CDATA[$permAuthKey]]></code>
+    </PropertyNotSetInConstructor>
   </file>
   <file src="src/Db/CachedArray.php">
     <MissingConstructor>
@@ -2785,59 +2795,6 @@
       <code><![CDATA[$this->colors]]></code>
     </UninitializedProperty>
   </file>
-  <file src="src/Loop/Connection/CheckLoop.php">
-    <ImplicitToStringCast>
-      <code><![CDATA[$this->connection->outgoing_messages[$message_id]]]></code>
-    </ImplicitToStringCast>
-    <InvalidOperand>
-      <code><![CDATA[$this->API->settings->getRpc()->getRpcResendTimeout() * 1_000_000_000.0]]></code>
-    </InvalidOperand>
-    <MixedArgument>
-      <code><![CDATA[$message_id]]></code>
-      <code><![CDATA[$message_id]]></code>
-      <code><![CDATA[$result['info']]]></code>
-    </MixedArgument>
-    <MixedArrayAccess>
-      <code><![CDATA[$result['info']]]></code>
-    </MixedArrayAccess>
-    <MixedArrayOffset>
-      <code><![CDATA[$this->connection->new_outgoing[$message_id]]]></code>
-      <code><![CDATA[$this->connection->outgoing_messages[$message_id]]]></code>
-      <code><![CDATA[$this->connection->outgoing_messages[$message_id]]]></code>
-    </MixedArrayOffset>
-    <MixedAssignment>
-      <code><![CDATA[$message_id]]></code>
-      <code><![CDATA[$message_id]]></code>
-      <code><![CDATA[$reply[]]]></code>
-      <code><![CDATA[$reply[]]]></code>
-      <code><![CDATA[$reply[]]]></code>
-      <code><![CDATA[$result]]></code>
-    </MixedAssignment>
-    <PossiblyNullArgument>
-      <code><![CDATA[$message->getMsgId()]]></code>
-    </PossiblyNullArgument>
-    <PossiblyNullOperand>
-      <code><![CDATA[$message->getSent()]]></code>
-      <code><![CDATA[$message->getSent()]]></code>
-    </PossiblyNullOperand>
-    <PossiblyNullPropertyFetch>
-      <code><![CDATA[$this->API->settings]]></code>
-    </PossiblyNullPropertyFetch>
-    <PossiblyNullReference>
-      <code><![CDATA[getRpc]]></code>
-    </PossiblyNullReference>
-    <PropertyNotSetInConstructor>
-      <code><![CDATA[CheckLoop]]></code>
-      <code><![CDATA[CheckLoop]]></code>
-      <code><![CDATA[CheckLoop]]></code>
-      <code><![CDATA[CheckLoop]]></code>
-      <code><![CDATA[CheckLoop]]></code>
-      <code><![CDATA[CheckLoop]]></code>
-    </PropertyNotSetInConstructor>
-    <UninitializedProperty>
-      <code><![CDATA[$this->API]]></code>
-    </UninitializedProperty>
-  </file>
   <file src="src/Loop/Connection/CleanupLoop.php">
     <PropertyNotSetInConstructor>
       <code><![CDATA[CleanupLoop]]></code>
@@ -2854,16 +2811,12 @@
       <code><![CDATA[$this->connection->msgIdHandler]]></code>
     </TypeDoesNotContainNull>
   </file>
-  <file src="src/Loop/Connection/HttpWaitLoop.php">
-    <PropertyNotSetInConstructor>
-      <code><![CDATA[HttpWaitLoop]]></code>
-    </PropertyNotSetInConstructor>
-  </file>
   <file src="src/Loop/Connection/PingLoop.php">
     <PossiblyNullReference>
       <code><![CDATA[getSettings]]></code>
     </PossiblyNullReference>
     <PropertyNotSetInConstructor>
+      <code><![CDATA[$mustPause]]></code>
       <code><![CDATA[PingLoop]]></code>
       <code><![CDATA[PingLoop]]></code>
       <code><![CDATA[PingLoop]]></code>
@@ -2896,6 +2849,8 @@
       <code><![CDATA[$message_data_length]]></code>
     </MixedOperand>
     <PossiblyNullArgument>
+      <code><![CDATA[$auth->getTempAuthKey()]]></code>
+      <code><![CDATA[$auth->getTempAuthKey()]]></code>
       <code><![CDATA[$buffer->bufferRead($payload_length)]]></code>
       <code><![CDATA[$buffer->bufferRead(4)]]></code>
       <code><![CDATA[$buffer->bufferRead(4)]]></code>
@@ -2915,16 +2870,14 @@
   </file>
   <file src="src/Loop/Connection/WriteLoop.php">
     <MixedArgument>
-      <code><![CDATA[$MTmessage['body']]]></code>
       <code><![CDATA[$aes_iv]]></code>
       <code><![CDATA[$aes_key]]></code>
       <code><![CDATA[$body]]></code>
       <code><![CDATA[$body]]></code>
       <code><![CDATA[$message_data]]></code>
+      <code><![CDATA[$result['info']]]></code>
     </MixedArgument>
     <MixedAssignment>
-      <code><![CDATA[$MTmessage['body']]]></code>
-      <code><![CDATA[$MTmessage['body']]]></code>
       <code><![CDATA[$body]]></code>
       <code><![CDATA[$body]]></code>
       <code><![CDATA[$message_data]]></code>
@@ -2935,34 +2888,42 @@
     </MixedOperand>
     <PossiblyNullArgument>
       <code><![CDATA[$MTmessage['body']]]></code>
+      <code><![CDATA[$auth->getTempAuthKey()]]></code>
       <code><![CDATA[$message->getSerializedBody()]]></code>
-      <code><![CDATA[$message->getSerializedBody()]]></code>
-      <code><![CDATA[$message_id]]></code>
+      <code><![CDATA[$serialized]]></code>
     </PossiblyNullArgument>
-    <PossiblyNullArrayAccess>
-      <code><![CDATA[$message['body']]]></code>
-      <code><![CDATA[$message['bytes']]]></code>
-      <code><![CDATA[$message['msg_id']]]></code>
-      <code><![CDATA[$message['seqno']]]></code>
-    </PossiblyNullArrayAccess>
     <PossiblyNullOperand>
-      <code><![CDATA[$message->getSerializedBody()]]></code>
+      <code><![CDATA[$auth->getServerSalt()]]></code>
+      <code><![CDATA[$auth->getTempAuthKeyForHash()]]></code>
+      <code><![CDATA[$auth->getTempID()]]></code>
+      <code><![CDATA[$message->getSent()]]></code>
       <code><![CDATA[$this->connection->session_id]]></code>
     </PossiblyNullOperand>
     <PossiblyNullReference>
+      <code><![CDATA[getSettings]]></code>
       <code><![CDATA[getWriteBuffer]]></code>
       <code><![CDATA[getWriteBuffer]]></code>
     </PossiblyNullReference>
     <PossiblyUndefinedArrayOffset>
-      <code><![CDATA[$messages[0]]]></code>
+      <code><![CDATA[$MTmessages[0]]]></code>
     </PossiblyUndefinedArrayOffset>
     <PropertyNotSetInConstructor>
+      <code><![CDATA[$isHttp]]></code>
+      <code><![CDATA[$queue]]></code>
+      <code><![CDATA[WriteLoop]]></code>
+      <code><![CDATA[WriteLoop]]></code>
+      <code><![CDATA[WriteLoop]]></code>
+      <code><![CDATA[WriteLoop]]></code>
+      <code><![CDATA[WriteLoop]]></code>
       <code><![CDATA[WriteLoop]]></code>
     </PropertyNotSetInConstructor>
-    <TypeDoesNotContainType>
-      <code><![CDATA[$this->connection->isHttp() && empty($this->connection->pendingOutgoing)]]></code>
-      <code><![CDATA[empty($this->connection->pendingOutgoing)]]></code>
-    </TypeDoesNotContainType>
+    <PropertyTypeCoercion>
+      <code><![CDATA[new WeakMap]]></code>
+      <code><![CDATA[new WeakMap]]></code>
+    </PropertyTypeCoercion>
+    <UninitializedProperty>
+      <code><![CDATA[$this->API]]></code>
+    </UninitializedProperty>
   </file>
   <file src="src/Loop/Generic/PeriodicLoopInternal.php">
     <MissingClosureReturnType>
@@ -2973,15 +2934,29 @@
     </MixedArgumentTypeCoercion>
   </file>
   <file src="src/Loop/Secret/SecretFeedLoop.php">
+    <InvalidArgument>
+      <code><![CDATA[$this]]></code>
+    </InvalidArgument>
     <MixedArgument>
       <code><![CDATA[$update]]></code>
     </MixedArgument>
     <MixedAssignment>
       <code><![CDATA[$update]]></code>
     </MixedAssignment>
+    <PossiblyNullReference>
+      <code><![CDATA[subscribe]]></code>
+    </PossiblyNullReference>
+    <PropertyNotSetInConstructor>
+      <code><![CDATA[$mustPause]]></code>
+      <code><![CDATA[SecretFeedLoop]]></code>
+    </PropertyNotSetInConstructor>
     <TypeDoesNotContainType>
       <code><![CDATA[isset($this->API->logger)]]></code>
     </TypeDoesNotContainType>
+    <UndefinedDocblockClass>
+      <code><![CDATA[$state->state]]></code>
+      <code><![CDATA[SecretFeedLoop]]></code>
+    </UndefinedDocblockClass>
   </file>
   <file src="src/Loop/Update/FeedLoop.php">
     <MissingClosureParamType>
@@ -3046,7 +3021,12 @@
       <code><![CDATA[pts]]></code>
       <code><![CDATA[resume]]></code>
       <code><![CDATA[resume]]></code>
+      <code><![CDATA[subscribe]]></code>
     </PossiblyNullReference>
+    <PropertyNotSetInConstructor>
+      <code><![CDATA[$mustPause]]></code>
+      <code><![CDATA[FeedLoop]]></code>
+    </PropertyNotSetInConstructor>
   </file>
   <file src="src/Loop/Update/SeqLoop.php">
     <MixedArgument>
@@ -3076,7 +3056,12 @@
     <PossiblyNullReference>
       <code><![CDATA[checkSeq]]></code>
       <code><![CDATA[feed]]></code>
+      <code><![CDATA[subscribe]]></code>
     </PossiblyNullReference>
+    <PropertyNotSetInConstructor>
+      <code><![CDATA[$mustPause]]></code>
+      <code><![CDATA[SeqLoop]]></code>
+    </PropertyNotSetInConstructor>
   </file>
   <file src="src/Loop/Update/UpdateLoop.php">
     <DocblockTypeContradiction>
@@ -3214,6 +3199,9 @@
       <code><![CDATA[$this->API->authorization['user']]]></code>
       <code><![CDATA[$this->API->authorization['user']['bot']]]></code>
     </PossiblyNullArrayAccess>
+    <PossiblyNullReference>
+      <code><![CDATA[subscribe]]></code>
+    </PossiblyNullReference>
     <PossiblyUndefinedVariable>
       <code><![CDATA[$difference]]></code>
       <code><![CDATA[$difference]]></code>
@@ -3239,6 +3227,10 @@
       <code><![CDATA[$difference]]></code>
       <code><![CDATA[$difference]]></code>
     </PossiblyUndefinedVariable>
+    <PropertyNotSetInConstructor>
+      <code><![CDATA[$authorizedDc]]></code>
+      <code><![CDATA[UpdateLoop]]></code>
+    </PropertyNotSetInConstructor>
     <RedundantConditionGivenDocblockType>
       <code><![CDATA[$this->API->feeders[$channelId]?->resume()]]></code>
     </RedundantConditionGivenDocblockType>
@@ -3262,18 +3254,15 @@
       <code><![CDATA[isset($this->TL)]]></code>
       <code><![CDATA[isset($this->settings)]]></code>
       <code><![CDATA[isset($this->settings)]]></code>
-      <code><![CDATA[new DataCenter($this)]]></code>
       <code><![CDATA[new PeerDatabase($this)]]></code>
     </DocblockTypeContradiction>
     <ImpureMethodCall>
       <code><![CDATA[load]]></code>
       <code><![CDATA[load]]></code>
-      <code><![CDATA[updateDefault]]></code>
     </ImpureMethodCall>
     <ImpureStaticProperty>
       <code><![CDATA[GarbageCollector::$prometheus]]></code>
       <code><![CDATA[GarbageCollector::$prometheus]]></code>
-      <code><![CDATA[Logger::$default]]></code>
       <code><![CDATA[Magic::$isIpcWorker]]></code>
     </ImpureStaticProperty>
     <InvalidArgument>
@@ -3320,8 +3309,9 @@
       <code><![CDATA[$key]]></code>
       <code><![CDATA[$key]]></code>
       <code><![CDATA[$options]]></code>
-      <code><![CDATA[$this->methodCallAsyncRead('account.getPassword', [], $this->authorized_dc)]]></code>
-      <code><![CDATA[$this->methodCallAsyncRead('phone.getCallConfig', [])]]></code>
+      <code><![CDATA[$this->authorized]]></code>
+      <code><![CDATA[$this->authorized]]></code>
+      <code><![CDATA[$this->authorized_dc]]></code>
     </MixedArgument>
     <MixedArgumentTypeCoercion>
       <code><![CDATA[$this->internalInitDbProperties(...)]]></code>
@@ -3341,10 +3331,9 @@
       <code><![CDATA[$support['user']['id']]]></code>
       <code><![CDATA[$this->authorization['user']['bot']]]></code>
       <code><![CDATA[$this->authorization['user']['bot']]]></code>
-      <code><![CDATA[$this->authorization['user']['bot']]]></code>
       <code><![CDATA[$this->authorization['user']['id']]]></code>
-      <code><![CDATA[($this->methodCallAsyncRead('help.getCdnConfig', [], $this->authorized_dc))['public_keys']]]></code>
-      <code><![CDATA[($this->methodCallAsyncRead('users.getUsers', ['id' => [['_' => 'inputUserSelf']]]))[0]]]></code>
+      <code><![CDATA[($this->methodCallAsyncRead('help.getCdnConfig', [], $this->loginState->getState()->authorizedDc))['public_keys']]]></code>
+      <code><![CDATA[($this->methodCallAsyncRead('users.getUsers', ['id' => [['_' => 'inputUserSelf']], 'specialMethodType' => SpecialMethodType::USER_RELATED]))[0]]]></code>
     </MixedArrayAccess>
     <MixedArrayOffset>
       <code><![CDATA[$new[$test][$ipv6][$id]]]></code>
@@ -3383,11 +3372,8 @@
       <code><![CDATA[$this->dcList[$test][$ipv6][$dc]['cdn'] ?? false]]></code>
       <code><![CDATA[$this->dcList[$test][$ipv6][$dc]['cdn'] ?? false]]></code>
       <code><![CDATA[$this->getSelf()['premium']]]></code>
+      <code><![CDATA[$this->methodCallAsyncRead('account.getPassword', ['specialMethodType' => SpecialMethodType::USER_RELATED])]]></code>
     </MixedReturnStatement>
-    <MixedReturnTypeCoercion>
-      <code><![CDATA[$this->cdn_rsa_keys]]></code>
-      <code><![CDATA[array<RSA>]]></code>
-    </MixedReturnTypeCoercion>
     <NullableReturnStatement>
       <code><![CDATA[$this->authorization['user']['bot']]]></code>
     </NullableReturnStatement>
@@ -3405,23 +3391,25 @@
       <code><![CDATA[$path]]></code>
     </PossiblyInvalidCast>
     <PossiblyNullArgument>
-      <code><![CDATA[$this->authorized_dc]]></code>
       <code><![CDATA[debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 1)[0]['file']]]></code>
     </PossiblyNullArgument>
     <PossiblyNullArrayAccess>
       <code><![CDATA[$this->authorization['hint']]]></code>
       <code><![CDATA[$this->authorization['user']]]></code>
       <code><![CDATA[$this->authorization['user']]]></code>
-      <code><![CDATA[$this->authorization['user']]]></code>
-      <code><![CDATA[$this->authorization['user']['bot']]]></code>
       <code><![CDATA[$this->authorization['user']['bot']]]></code>
       <code><![CDATA[$this->authorization['user']['bot']]]></code>
       <code><![CDATA[$this->authorization['user']['id']]]></code>
     </PossiblyNullArrayAccess>
     <PossiblyNullReference>
+      <code><![CDATA[getState]]></code>
+      <code><![CDATA[getState]]></code>
+      <code><![CDATA[getState]]></code>
+      <code><![CDATA[getState]]></code>
+      <code><![CDATA[getState]]></code>
       <code><![CDATA[init]]></code>
+      <code><![CDATA[publish]]></code>
       <code><![CDATA[saveDbProperties]]></code>
-      <code><![CDATA[start]]></code>
       <code><![CDATA[start]]></code>
     </PossiblyNullReference>
     <PossiblyUndefinedArrayOffset>
@@ -3436,10 +3424,8 @@
       <code><![CDATA[isset($this->wrapper) && isset(self::$references[$this->getSessionName()])]]></code>
     </RedundantCondition>
     <RedundantConditionGivenDocblockType>
-      <code><![CDATA[$this->authorized === API::LOGGED_IN && \is_int($dc_id)]]></code>
-      <code><![CDATA[$this->datacenter]]></code>
       <code><![CDATA[$this->peerDatabase]]></code>
-      <code><![CDATA[\is_int($dc_id)]]></code>
+      <code><![CDATA[isset($this->datacenter)]]></code>
       <code><![CDATA[isset($this->datacenter)]]></code>
     </RedundantConditionGivenDocblockType>
     <TaintedTextWithQuotes>
@@ -3454,6 +3440,8 @@
       <code><![CDATA[memprof_enabled()]]></code>
     </UndefinedFunction>
     <UndefinedThisPropertyFetch>
+      <code><![CDATA[$this->authorized]]></code>
+      <code><![CDATA[$this->authorized_dc]]></code>
       <code><![CDATA[$this->updates]]></code>
     </UndefinedThisPropertyFetch>
     <UnsupportedReferenceUsage>
@@ -3468,6 +3456,12 @@
       <code><![CDATA[$old['server_salt']]]></code>
     </MixedArgument>
   </file>
+  <file src="src/MTProto/Container.php">
+    <PropertyNotSetInConstructor>
+      <code><![CDATA[Container]]></code>
+      <code><![CDATA[Container]]></code>
+    </PropertyNotSetInConstructor>
+  </file>
   <file src="src/MTProto/LinkedList.php">
     <InvalidReturnStatement>
       <code><![CDATA[$this->prev]]></code>
@@ -3475,13 +3469,11 @@
     <InvalidReturnType>
       <code><![CDATA[?MTProtoOutgoingMessage]]></code>
     </InvalidReturnType>
-    <UndefinedPropertyAssignment>
-      <code><![CDATA[$message->next]]></code>
-      <code><![CDATA[$message->prev]]></code>
-      <code><![CDATA[$this->next->prev]]></code>
-    </UndefinedPropertyAssignment>
   </file>
   <file src="src/MTProto/MTProtoIncomingMessage.php">
+    <InvalidPropertyAssignmentValue>
+      <code><![CDATA[$this->connection->ack_queue]]></code>
+    </InvalidPropertyAssignmentValue>
     <MixedArrayOffset>
       <code><![CDATA[MTProtoMessage::NOT_CONTENT_RELATED[$content['_']]]]></code>
       <code><![CDATA[self::RESPONSE_ID_MAP[$this->content['_']]]]></code>
@@ -3546,10 +3538,41 @@
       <code><![CDATA[$this->state |= self::STATE_REPLIED]]></code>
       <code><![CDATA[$this->state |= self::STATE_SENT]]></code>
     </PossiblyInvalidPropertyAssignmentValue>
+    <PossiblyNullArgument>
+      <code><![CDATA[$this->cancelSubscription]]></code>
+    </PossiblyNullArgument>
+    <PossiblyNullArrayOffset>
+      <code><![CDATA[$this->connection->new_outgoing]]></code>
+      <code><![CDATA[$this->connection->unencrypted_new_outgoing]]></code>
+    </PossiblyNullArrayOffset>
     <PossiblyNullOperand>
       <code><![CDATA[$this->sent]]></code>
       <code><![CDATA[$this->sent]]></code>
     </PossiblyNullOperand>
+    <PropertyNotSetInConstructor>
+      <code><![CDATA[$next]]></code>
+      <code><![CDATA[$prev]]></code>
+    </PropertyNotSetInConstructor>
+  </file>
+  <file src="src/MTProto/NewAuthKey.php">
+    <InvalidArgument>
+      <code><![CDATA[$this]]></code>
+    </InvalidArgument>
+    <LessSpecificReturnStatement>
+      <code><![CDATA[Crypt::oldKdf($message_key, $this->authKey)]]></code>
+    </LessSpecificReturnStatement>
+    <MoreSpecificReturnType>
+      <code><![CDATA[list{string, string}]]></code>
+    </MoreSpecificReturnType>
+    <PossiblyNullArgument>
+      <code><![CDATA[$this->authKey]]></code>
+    </PossiblyNullArgument>
+    <PropertyNotSetInConstructor>
+      <code><![CDATA[$authedDcId]]></code>
+    </PropertyNotSetInConstructor>
+    <RedundantConditionGivenDocblockType>
+      <code><![CDATA[isInstanceOf]]></code>
+    </RedundantConditionGivenDocblockType>
   </file>
   <file src="src/MTProto/PermAuthKey.php">
     <MixedArgument>
@@ -3574,30 +3597,15 @@
       <code><![CDATA[$this->{$key} =& $bound->{$key}]]></code>
     </UnsupportedReferenceUsage>
   </file>
-  <file src="src/MTProtoSession/AckHandler.php">
-    <ImplicitToStringCast>
-      <code><![CDATA[$message]]></code>
-    </ImplicitToStringCast>
-    <InvalidOperand>
-      <code><![CDATA[$global->getRpc()->getRpcDropTimeout() * 1_000_000_000.0]]></code>
-    </InvalidOperand>
-    <PossiblyNullArrayOffset>
-      <code><![CDATA[$this->new_outgoing]]></code>
-    </PossiblyNullArrayOffset>
-    <PossiblyNullOperand>
-      <code><![CDATA[$message->getSent()]]></code>
-      <code><![CDATA[$message->getSent()]]></code>
-      <code><![CDATA[$message->getSent()]]></code>
-    </PossiblyNullOperand>
-  </file>
   <file src="src/MTProtoSession/AuthKeyHandler.php">
     <ImplicitToStringCast>
       <code><![CDATA[$e]]></code>
+      <code><![CDATA[$e]]></code>
     </ImplicitToStringCast>
     <MixedArgument>
-      <code><![CDATA[$ResPQ['server_public_key_fingerprints']]]></code>
       <code><![CDATA[$data]]></code>
       <code><![CDATA[$encrypted_answer]]></code>
+      <code><![CDATA[$fps]]></code>
       <code><![CDATA[$p]]></code>
       <code><![CDATA[$p_q_inner_data]]></code>
       <code><![CDATA[$p_q_inner_data]]></code>
@@ -3633,7 +3641,7 @@
       <code><![CDATA[$Set_client_DH_params_answer]]></code>
       <code><![CDATA[$data]]></code>
       <code><![CDATA[$encrypted_answer]]></code>
-      <code><![CDATA[$encrypted_data]]></code>
+      <code><![CDATA[$fps]]></code>
       <code><![CDATA[$p]]></code>
       <code><![CDATA[$p]]></code>
       <code><![CDATA[$p_q_inner_data]]></code>
@@ -3646,9 +3654,6 @@
       <code><![CDATA[$server_time]]></code>
       <code><![CDATA[$this->time_delta]]></code>
     </MixedAssignment>
-    <MixedMethodCall>
-      <code><![CDATA[encrypt]]></code>
-    </MixedMethodCall>
     <MixedOperand>
       <code><![CDATA[$data]]></code>
       <code><![CDATA[$p]]></code>
@@ -3663,14 +3668,8 @@
       <code><![CDATA[$server_nonce]]></code>
       <code><![CDATA[$server_time]]></code>
     </MixedOperand>
-    <MixedPropertyFetch>
-      <code><![CDATA[$key->fp]]></code>
-    </MixedPropertyFetch>
   </file>
   <file src="src/MTProtoSession/CallHandler.php">
-    <MissingClosureReturnType>
-      <code><![CDATA[static fn (WrappedFuture $f) => $f->await()]]></code>
-    </MissingClosureReturnType>
     <MissingConstructor>
       <code><![CDATA[$abstractionQueueMutex]]></code>
     </MissingConstructor>
@@ -3683,7 +3682,10 @@
       <code><![CDATA[$args['id']['dc_id']]]></code>
       <code><![CDATA[$args['madelineMsgId']]]></code>
       <code><![CDATA[$args['peer']]]></code>
+      <code><![CDATA[$args['specialMethodType'] ?? null]]></code>
       <code><![CDATA[$args['takeoutId'] ?? null]]></code>
+      <code><![CDATA[$args['timeout'] ?? ($this->drop ??= (float) $this->API->getSettings()->getRpc()->getRpcDropTimeout())]]></code>
+      <code><![CDATA[$cancellation]]></code>
       <code><![CDATA[$cancellation]]></code>
       <code><![CDATA[$methodInfo['subtype'] ?? null]]></code>
       <code><![CDATA[$methodInfo['type']]]></code>
@@ -3691,6 +3693,9 @@
       <code><![CDATA[$sub]]></code>
       <code><![CDATA[$this->API->parseMode($args)['message']]]></code>
     </MixedArgument>
+    <MixedArgumentTypeCoercion>
+      <code><![CDATA[$this->methodCallAsyncRead(...)]]></code>
+    </MixedArgumentTypeCoercion>
     <MixedArrayAccess>
       <code><![CDATA[$methodInfo['encrypted']]]></code>
       <code><![CDATA[$methodInfo['subtype']]]></code>
@@ -3699,29 +3704,27 @@
     <MixedArrayAssignment>
       <code><![CDATA[$sub['queueId']]]></code>
     </MixedArrayAssignment>
-    <MixedArrayOffset>
-      <code><![CDATA[$this->outgoing_messages[$message_id]]]></code>
-      <code><![CDATA[$this->outgoing_messages[$message_id]]]></code>
-    </MixedArrayOffset>
     <MixedAssignment>
       <code><![CDATA[$cancellation]]></code>
+      <code><![CDATA[$cancellation]]></code>
       <code><![CDATA[$encrypted]]></code>
-      <code><![CDATA[$message_id]]></code>
       <code><![CDATA[$methodInfo]]></code>
       <code><![CDATA[$peer]]></code>
       <code><![CDATA[$queueId]]></code>
       <code><![CDATA[$sub]]></code>
     </MixedAssignment>
     <MixedMethodCall>
+      <code><![CDATA[subscribe]]></code>
+      <code><![CDATA[throwIfRequested]]></code>
       <code><![CDATA[throwIfRequested]]></code>
     </MixedMethodCall>
-    <MixedOperand>
-      <code><![CDATA[$this->outgoing_messages[$message_id] ?? $message_id]]></code>
-    </MixedOperand>
-    <PossiblyNullReference>
-      <code><![CDATA[release]]></code>
-      <code><![CDATA[resume]]></code>
-    </PossiblyNullReference>
+    <PossiblyNullArrayOffset>
+      <code><![CDATA[$this->new_outgoing]]></code>
+      <code><![CDATA[$this->unencrypted_new_outgoing]]></code>
+    </PossiblyNullArrayOffset>
+    <TypeDoesNotContainType>
+      <code><![CDATA[$request->cancellation?->subscribe(static fn () => EventLoop::cancel($id))]]></code>
+    </TypeDoesNotContainType>
   </file>
   <file src="src/MTProtoSession/MsgIdHandler.php">
     <InvalidOperand>
@@ -3736,30 +3739,23 @@
       <code><![CDATA[$content['info'][$key]]]></code>
       <code><![CDATA[$content['msg_ids']]]></code>
       <code><![CDATA[$content['msg_ids']]]></code>
-      <code><![CDATA[$msg_id]]></code>
     </MixedArgument>
     <MixedArrayAccess>
       <code><![CDATA[$content['info'][$key]]]></code>
     </MixedArrayAccess>
     <MixedArrayOffset>
       <code><![CDATA[$content['info'][$key]]]></code>
-      <code><![CDATA[$this->incoming_messages[$content['answer_msg_id']]]]></code>
-      <code><![CDATA[$this->incoming_messages[$content['answer_msg_id']]]]></code>
-      <code><![CDATA[$this->incoming_messages[$msg_id]]]></code>
-      <code><![CDATA[$this->incoming_messages[$msg_id]]]></code>
-      <code><![CDATA[$this->outgoing_messages[$content['msg_id']]]]></code>
-      <code><![CDATA[$this->outgoing_messages[$msg_id]]]></code>
+      <code><![CDATA[$this->new_outgoing[$content['msg_id']]]]></code>
+      <code><![CDATA[$this->new_outgoing[$msg_id]]]></code>
+      <code><![CDATA[$this->new_outgoing[$msg_id]]]></code>
     </MixedArrayOffset>
     <MixedAssignment>
       <code><![CDATA[$key]]></code>
       <code><![CDATA[$msg_id]]></code>
       <code><![CDATA[$msg_id]]></code>
       <code><![CDATA[$msg_id]]></code>
-      <code><![CDATA[$msg_id]]></code>
-      <code><![CDATA[$shifted]]></code>
     </MixedAssignment>
     <MixedOperand>
-      <code><![CDATA[$msg_id]]></code>
       <code><![CDATA[$msg_id]]></code>
     </MixedOperand>
   </file>
@@ -3774,7 +3770,6 @@
       <code><![CDATA[$msg['msg_id']]]></code>
       <code><![CDATA[$msg['msg_id']]]></code>
       <code><![CDATA[$msg['seqno']]]></code>
-      <code><![CDATA[$msg_id]]></code>
       <code><![CDATA[$referencedMsgId]]></code>
       <code><![CDATA[$response]]></code>
       <code><![CDATA[$response['_']]]></code>
@@ -3789,7 +3784,6 @@
       <code><![CDATA[$msg['body']]]></code>
       <code><![CDATA[$msg['msg_id']]]></code>
       <code><![CDATA[$msg['msg_id']]]></code>
-      <code><![CDATA[$msg['msg_id']]]></code>
       <code><![CDATA[$msg['seqno']]]></code>
       <code><![CDATA[$response['_']]]></code>
       <code><![CDATA[$response['error_code']]]></code>
@@ -3801,15 +3795,12 @@
       <code><![CDATA[$this->API->getTL()->getConstructors()->findByPredicate($response['_'])['type']]]></code>
     </MixedArrayAccess>
     <MixedArrayOffset>
-      <code><![CDATA[$this->incoming_messages[$msg['msg_id']]]]></code>
-      <code><![CDATA[$this->incoming_messages[$referencedMsgId]]]></code>
       <code><![CDATA[MTProto::BAD_MSG_ERROR_CODES[$response['error_code']]]]></code>
       <code><![CDATA[MTProto::BAD_MSG_ERROR_CODES[$response['error_code']]]]></code>
     </MixedArrayOffset>
     <MixedAssignment>
       <code><![CDATA[$constructor]]></code>
       <code><![CDATA[$msg]]></code>
-      <code><![CDATA[$msg_id]]></code>
       <code><![CDATA[$referencedMsgId]]></code>
       <code><![CDATA[$response]]></code>
       <code><![CDATA[$responseType]]></code>
@@ -3823,28 +3814,30 @@
     <PossiblyInvalidArgument>
       <code><![CDATA[$response]]></code>
     </PossiblyInvalidArgument>
-    <PossiblyNullArgument>
-      <code><![CDATA[$msgId]]></code>
-      <code><![CDATA[$msgId]]></code>
-      <code><![CDATA[$msgId]]></code>
-      <code><![CDATA[$msgId]]></code>
-      <code><![CDATA[$request->getMsgId()]]></code>
-    </PossiblyNullArgument>
-    <RedundantConditionGivenDocblockType>
-      <code><![CDATA[$this->API->authorized_dc == $this->datacenter && $this->API->authorized === \danog\MadelineProto\API::LOGGED_IN]]></code>
-    </RedundantConditionGivenDocblockType>
+    <PossiblyNullReference>
+      <code><![CDATA[getState]]></code>
+      <code><![CDATA[getState]]></code>
+      <code><![CDATA[getState]]></code>
+      <code><![CDATA[publish]]></code>
+    </PossiblyNullReference>
   </file>
   <file src="src/MTProtoSession/Session.php">
     <MissingConstructor>
+      <code><![CDATA[$check_queue]]></code>
+      <code><![CDATA[$mainPendingOutgoing]]></code>
       <code><![CDATA[$msgIdHandler]]></code>
       <code><![CDATA[$new_incoming]]></code>
+      <code><![CDATA[$unencryptedPendingOutgoing]]></code>
+      <code><![CDATA[$unencrypted_check_queue]]></code>
+      <code><![CDATA[$uninitedPendingOutgoing]]></code>
     </MissingConstructor>
     <MixedPropertyTypeCoercion>
       <code><![CDATA[$q]]></code>
     </MixedPropertyTypeCoercion>
-    <PossiblyNullOperand>
-      <code><![CDATA[$message->getSent()]]></code>
-    </PossiblyNullOperand>
+    <PropertyTypeCoercion>
+      <code><![CDATA[$this->check_queue ??= new WeakMap]]></code>
+      <code><![CDATA[$this->unencrypted_check_queue ??= new WeakMap]]></code>
+    </PropertyTypeCoercion>
   </file>
   <file src="src/MTProtoTools/AuthKeyHandler.php">
     <MixedArgument>
@@ -3868,6 +3861,9 @@
     <MissingReturnType>
       <code><![CDATA[methodCallAsyncRead]]></code>
     </MissingReturnType>
+    <PossiblyNullReference>
+      <code><![CDATA[getState]]></code>
+    </PossiblyNullReference>
   </file>
   <file src="src/MTProtoTools/FileServer.php">
     <MixedArrayOffset>
@@ -3982,8 +3978,8 @@
       <code><![CDATA[$offset['part_end_at'] - $offset['part_start_at']]]></code>
       <code><![CDATA[$offset['part_start_at']]]></code>
       <code><![CDATA[$res['mime'] ?? 'image/jpeg']]></code>
-      <code><![CDATA[$this->methodCallAsyncRead('upload.getCdnFileHashes', ['file_token' => $file, 'offset' => $offset, 'cancellation' => $cancellation], $this->authorized_dc)]]></code>
-      <code><![CDATA[$this->methodCallAsyncRead('upload.reuploadCdnFile', ['file_token' => $messageMedia['file_token'], 'request_token' => $res['request_token'], 'cancellation' => $cancellation], $this->authorized_dc)]]></code>
+      <code><![CDATA[$this->methodCallAsyncRead('upload.getCdnFileHashes', ['file_token' => $file, 'offset' => $offset, 'cancellation' => $cancellation], $this->loginState->getState()->authorizedDc)]]></code>
+      <code><![CDATA[$this->methodCallAsyncRead('upload.reuploadCdnFile', ['file_token' => $messageMedia['file_token'], 'request_token' => $res['request_token'], 'cancellation' => $cancellation], $this->loginState->getState()->authorizedDc)]]></code>
       <code><![CDATA[$url]]></code>
     </MixedArgument>
     <MixedArrayAccess>
@@ -4241,6 +4237,12 @@
       <code><![CDATA[getReference]]></code>
       <code><![CDATA[getReference]]></code>
       <code><![CDATA[getReference]]></code>
+      <code><![CDATA[getState]]></code>
+      <code><![CDATA[getState]]></code>
+      <code><![CDATA[getState]]></code>
+      <code><![CDATA[getState]]></code>
+      <code><![CDATA[getState]]></code>
+      <code><![CDATA[getState]]></code>
     </PossiblyNullReference>
     <PossiblyUndefinedArrayOffset>
       <code><![CDATA[$messageMedia['bytes']]]></code>
@@ -4251,6 +4253,8 @@
       <code><![CDATA[$messageMedia['photo']]]></code>
     </PossiblyUndefinedArrayOffset>
     <PossiblyUndefinedVariable>
+      <code><![CDATA[$datacenter]]></code>
+      <code><![CDATA[$datacenter]]></code>
       <code><![CDATA[$res]]></code>
       <code><![CDATA[$res]]></code>
       <code><![CDATA[$res]]></code>
@@ -4568,14 +4572,13 @@
     <MixedArgument>
       <code><![CDATA[$bot_api_id]]></code>
       <code><![CDATA[$bot_api_id]]></code>
-      <code><![CDATA[$bot_api_id]]></code>
-      <code><![CDATA[$bot_api_id]]></code>
       <code><![CDATA[$chat['id']]]></code>
       <code><![CDATA[$chat['id']]]></code>
       <code><![CDATA[$chat['id']]]></code>
       <code><![CDATA[$constructor['username']]]></code>
       <code><![CDATA[$full[$k]]]></code>
       <code><![CDATA[$id]]></code>
+      <code><![CDATA[$user['id']]]></code>
       <code><![CDATA[$user['id']]]></code>
       <code><![CDATA[$user['id']]]></code>
       <code><![CDATA[$user['id']]]></code>
@@ -4593,7 +4596,6 @@
       <code><![CDATA[($this->API->methodCallAsyncRead('contacts.resolveUsername', ['username' => $username]))['peer']]]></code>
     </MixedArrayAccess>
     <MixedArrayOffset>
-      <code><![CDATA[$this->db[$bot_api_id]]]></code>
       <code><![CDATA[$this->db[$bot_api_id]]]></code>
       <code><![CDATA[$this->db[$chat['id']]]]></code>
       <code><![CDATA[$this->db[$chat['id']]]]></code>
@@ -5050,7 +5052,6 @@
       <code><![CDATA[$action['random_ids']]]></code>
       <code><![CDATA[$action['ttl_seconds']]]></code>
       <code><![CDATA[$authorization]]></code>
-      <code><![CDATA[$authorization['authorization']]]></code>
       <code><![CDATA[$datacenter]]></code>
       <code><![CDATA[$message['action']['amount']]]></code>
       <code><![CDATA[$message['action']['amount']]]></code>
@@ -5164,7 +5165,6 @@
       <code><![CDATA[$action['random_ids']]]></code>
       <code><![CDATA[$action['ttl_seconds']]]></code>
       <code><![CDATA[$authorization['_']]]></code>
-      <code><![CDATA[$authorization['authorization']]]></code>
       <code><![CDATA[$authorization['dc_id']]]></code>
       <code><![CDATA[$authorization['dc_id']]]></code>
       <code><![CDATA[$message['action']['_']]]></code>
@@ -5302,7 +5302,7 @@
       <code><![CDATA[$updates['updates'][$key]]]></code>
     </MixedArrayAccess>
     <MixedArrayAssignment>
-      <code><![CDATA[$this->authorization['hint']]]></code>
+      <code><![CDATA[$authorization['specialMethodType']]]></code>
     </MixedArrayAssignment>
     <MixedArrayOffset>
       <code><![CDATA[$message[$param['name']]]]></code>
@@ -5351,9 +5351,6 @@
       <code><![CDATA[$param]]></code>
       <code><![CDATA[$peer_id]]></code>
       <code><![CDATA[$result]]></code>
-      <code><![CDATA[$this->authorization]]></code>
-      <code><![CDATA[$this->authorization]]></code>
-      <code><![CDATA[$this->authorized_dc]]></code>
       <code><![CDATA[$to_id]]></code>
       <code><![CDATA[$to_id]]></code>
       <code><![CDATA[$update]]></code>
@@ -5414,6 +5411,8 @@
     </PossiblyNullArrayAccess>
     <PossiblyNullReference>
       <code><![CDATA[addPendingWakeups]]></code>
+      <code><![CDATA[getState]]></code>
+      <code><![CDATA[publish]]></code>
       <code><![CDATA[waitForInternalStart]]></code>
     </PossiblyNullReference>
     <PossiblyUndefinedArrayOffset>
@@ -5704,6 +5703,35 @@
       <code><![CDATA[$n]]></code>
     </PropertyNotSetInConstructor>
   </file>
+  <file src="src/Reactive/Actor.php">
+    <PossiblyUndefinedArrayOffset>
+      <code><![CDATA[$item[1]]]></code>
+    </PossiblyUndefinedArrayOffset>
+  </file>
+  <file src="src/Reactive/Publisher.php">
+    <InvalidDocblock>
+      <code><![CDATA[array{state: T, subscribers: list<{BaseSubscriber<T>, Subscriber<T>}>}]]></code>
+    </InvalidDocblock>
+    <MixedArgument>
+      <code><![CDATA[$subscriber]]></code>
+      <code><![CDATA[$subscriber]]></code>
+      <code><![CDATA[$v]]></code>
+    </MixedArgument>
+    <MixedArrayAccess>
+      <code><![CDATA[$subscriber]]></code>
+      <code><![CDATA[$v]]></code>
+    </MixedArrayAccess>
+    <MixedArrayOffset>
+      <code><![CDATA[$this->subscribers[$subscriber]]]></code>
+    </MixedArrayOffset>
+    <MixedAssignment>
+      <code><![CDATA[$this->state]]></code>
+      <code><![CDATA[[$subscriber, $v]]]></code>
+    </MixedAssignment>
+    <PropertyTypeCoercion>
+      <code><![CDATA[new WeakMap]]></code>
+    </PropertyTypeCoercion>
+  </file>
   <file src="src/SecretChats/AuthKeyHandler.php">
     <InvalidOperand>
       <code><![CDATA[$user]]></code>
@@ -5802,6 +5830,9 @@
       <code><![CDATA[$this]]></code>
       <code><![CDATA[$this]]></code>
     </ImplicitToStringCast>
+    <InvalidArgument>
+      <code><![CDATA[$this->feedLoop]]></code>
+    </InvalidArgument>
     <MixedArgument>
       <code><![CDATA[$action]]></code>
       <code><![CDATA[$action]]></code>
@@ -5975,6 +6006,9 @@
       <code><![CDATA[$seqno]]></code>
       <code><![CDATA[$this->gapEnd]]></code>
     </MixedOperand>
+    <PossiblyNullReference>
+      <code><![CDATA[subscribe]]></code>
+    </PossiblyNullReference>
     <PropertyNotSetInConstructor>
       <code><![CDATA[$incoming]]></code>
       <code><![CDATA[$outgoing]]></code>
@@ -7160,6 +7194,7 @@
       <code><![CDATA[$elem]]></code>
       <code><![CDATA[$elem]]></code>
       <code><![CDATA[$long_len]]></code>
+      <code><![CDATA[$msg]]></code>
       <code><![CDATA[$name]]></code>
       <code><![CDATA[$object]]></code>
       <code><![CDATA[$object]]></code>
@@ -7178,8 +7213,6 @@
       <code><![CDATA[$tl['layer'] ?? -1]]></code>
       <code><![CDATA[$tl['layer'] ?? -1]]></code>
       <code><![CDATA[$type]]></code>
-      <code><![CDATA[$type['connection']->outgoing_messages[$x['req_msg_id']]]]></code>
-      <code><![CDATA[$type['connection']->outgoing_messages[$x['req_msg_id']]->constructor]]></code>
       <code><![CDATA[$type['subtype']]]></code>
       <code><![CDATA[$type['type']]]></code>
       <code><![CDATA[$type['type']]]></code>
@@ -7263,11 +7296,9 @@
       <code><![CDATA[$this->tdDescriptions['methods'][$name]['params']]]></code>
       <code><![CDATA[$tl['id']]]></code>
       <code><![CDATA[$type]]></code>
-      <code><![CDATA[$type['connection']->outgoing_messages[$x['req_msg_id']]]]></code>
-      <code><![CDATA[$type['connection']->outgoing_messages[$x['req_msg_id']]]]></code>
-      <code><![CDATA[$type['connection']->outgoing_messages[$x['req_msg_id']]]]></code>
-      <code><![CDATA[$type['connection']->outgoing_messages[$x['req_msg_id']]]]></code>
-      <code><![CDATA[$type['connection']->outgoing_messages[$x['req_msg_id']]]]></code>
+      <code><![CDATA[$type['connection']->new_outgoing[$x['req_msg_id']]]]></code>
+      <code><![CDATA[$type['connection']->new_outgoing[$x['req_msg_id']]]]></code>
+      <code><![CDATA[$type['connection']->new_outgoing[$x['req_msg_id']]]]></code>
       <code><![CDATA[$type['type'][0]]]></code>
       <code><![CDATA[$type['type'][0]]]></code>
     </MixedArrayAccess>
@@ -7279,8 +7310,10 @@
       <code><![CDATA[$TL_dict['methods'][$key]]]></code>
       <code><![CDATA[$TL_dict['methods'][$key]['id']]]></code>
       <code><![CDATA[$arg['connection']]]></code>
+      <code><![CDATA[$arg['encrypted']]]></code>
       <code><![CDATA[$arg['subtype']]]></code>
       <code><![CDATA[$constructorData['connection']]]></code>
+      <code><![CDATA[$constructorData['encrypted']]]></code>
       <code><![CDATA[$constructorData['predicate']]]></code>
       <code><![CDATA[$constructorData['predicate']]]></code>
       <code><![CDATA[$constructorData['subtype']]]></code>
@@ -7313,8 +7346,8 @@
       <code><![CDATA[$res[$pair['key']]]]></code>
       <code><![CDATA[$this->afterConstructorDeserialization[$x['_']]]]></code>
       <code><![CDATA[$this->afterConstructorDeserialization[$x['_']]]]></code>
-      <code><![CDATA[$this->afterMethodResponseDeserialization[$type['connection']->outgoing_messages[$x['req_msg_id']]->constructor]]]></code>
-      <code><![CDATA[$this->afterMethodResponseDeserialization[$type['connection']->outgoing_messages[$x['req_msg_id']]->constructor]]]></code>
+      <code><![CDATA[$this->afterMethodResponseDeserialization[$msg->constructor]]]></code>
+      <code><![CDATA[$this->afterMethodResponseDeserialization[$type['connection']->new_outgoing[$x['req_msg_id']]->constructor]]]></code>
       <code><![CDATA[$this->beforeConstructorDeserialization[$x['_']]]]></code>
       <code><![CDATA[$this->beforeConstructorDeserialization[$x['_']]]]></code>
       <code><![CDATA[$this->beforeConstructorSerialization[$object['_']]]]></code>
@@ -7328,13 +7361,11 @@
       <code><![CDATA[$this->tdDescriptions['methods'][$name]]]></code>
       <code><![CDATA[$this->typeMismatch[$type['type']]]]></code>
       <code><![CDATA[$this->typeMismatch[$type['type']]]]></code>
-      <code><![CDATA[$type['connection']->outgoing_messages[$x['req_msg_id']]]]></code>
-      <code><![CDATA[$type['connection']->outgoing_messages[$x['req_msg_id']]]]></code>
-      <code><![CDATA[$type['connection']->outgoing_messages[$x['req_msg_id']]]]></code>
-      <code><![CDATA[$type['connection']->outgoing_messages[$x['req_msg_id']]]]></code>
-      <code><![CDATA[$type['connection']->outgoing_messages[$x['req_msg_id']]]]></code>
-      <code><![CDATA[$type['connection']->outgoing_messages[$x['req_msg_id']]]]></code>
-      <code><![CDATA[$type['connection']->outgoing_messages[$x['req_msg_id']]]]></code>
+      <code><![CDATA[$type['connection']->new_outgoing[$x['req_msg_id']]]]></code>
+      <code><![CDATA[$type['connection']->new_outgoing[$x['req_msg_id']]]]></code>
+      <code><![CDATA[$type['connection']->new_outgoing[$x['req_msg_id']]]]></code>
+      <code><![CDATA[$type['connection']->new_outgoing[$x['req_msg_id']]]]></code>
+      <code><![CDATA[$type['connection']->new_outgoing[$x['req_msg_id']]]]></code>
       <code><![CDATA[$x[$arg['flag']]]]></code>
       <code><![CDATA[$x[$arg['flag']]]]></code>
       <code><![CDATA[$x[$arg['name']]]]></code>
@@ -7347,6 +7378,7 @@
     <MixedAssignment>
       <code><![CDATA[$arg]]></code>
       <code><![CDATA[$arg['connection']]]></code>
+      <code><![CDATA[$arg['encrypted']]]></code>
       <code><![CDATA[$arguments[$flag]]]></code>
       <code><![CDATA[$arguments[$flag]]]></code>
       <code><![CDATA[$arguments[$flag]]]></code>
@@ -7362,6 +7394,7 @@
       <code><![CDATA[$constructorData]]></code>
       <code><![CDATA[$constructorData]]></code>
       <code><![CDATA[$constructorData['connection']]]></code>
+      <code><![CDATA[$constructorData['encrypted']]]></code>
       <code><![CDATA[$constructorData['subtype']]]></code>
       <code><![CDATA[$count]]></code>
       <code><![CDATA[$current_argument]]></code>
@@ -7378,6 +7411,7 @@
       <code><![CDATA[$key]]></code>
       <code><![CDATA[$key]]></code>
       <code><![CDATA[$long_len]]></code>
+      <code><![CDATA[$msg]]></code>
       <code><![CDATA[$name]]></code>
       <code><![CDATA[$name]]></code>
       <code><![CDATA[$name]]></code>
@@ -7449,11 +7483,10 @@
       <code><![CDATA[~$pow]]></code>
     </MixedOperand>
     <MixedPropertyFetch>
-      <code><![CDATA[$type['connection']->outgoing_messages]]></code>
-      <code><![CDATA[$type['connection']->outgoing_messages]]></code>
-      <code><![CDATA[$type['connection']->outgoing_messages[$x['req_msg_id']]->constructor]]></code>
-      <code><![CDATA[$type['connection']->outgoing_messages[$x['req_msg_id']]->constructor]]></code>
-      <code><![CDATA[$type['connection']->outgoing_messages[$x['req_msg_id']]->constructor]]></code>
+      <code><![CDATA[$msg->constructor]]></code>
+      <code><![CDATA[$type['connection']->new_outgoing]]></code>
+      <code><![CDATA[$type['connection']->new_outgoing]]></code>
+      <code><![CDATA[$type['connection']->new_outgoing[$x['req_msg_id']]->constructor]]></code>
     </MixedPropertyFetch>
     <MoreSpecificReturnType>
       <code><![CDATA[array{
@@ -8207,6 +8240,9 @@
     <PossiblyNullArrayOffset>
       <code><![CDATA[$dialogs]]></code>
     </PossiblyNullArrayOffset>
+    <PossiblyNullReference>
+      <code><![CDATA[getState]]></code>
+    </PossiblyNullReference>
     <TypeDoesNotContainType>
       <code><![CDATA[$this->cachedAllBotUsers]]></code>
       <code><![CDATA[$this->cachedAllBotUsers]]></code>
@@ -8237,27 +8273,13 @@
     </InvalidFalsableReturnType>
     <MixedArgument>
       <code><![CDATA[$authorization]]></code>
-      <code><![CDATA[$authorization]]></code>
-      <code><![CDATA[$authorization['authorization']]]></code>
       <code><![CDATA[$authorization['expires']]]></code>
-      <code><![CDATA[$datacenter]]></code>
-      <code><![CDATA[$res]]></code>
-      <code><![CDATA[$this->methodCallAsyncRead(
-            'auth.importBotAuthorization',
-            [
-                'bot_auth_token' => $token,
-                'api_id' => $this->settings->getAppInfo()->getApiId(),
-                'api_hash' => $this->settings->getAppInfo()->getApiHash(),
-            ],
-        )]]></code>
-      <code><![CDATA[$this->methodCallAsyncRead('account.getPassword', [])]]></code>
-      <code><![CDATA[$this->methodCallAsyncRead('auth.signUp', ['phone_number' => $this->authorization['phone_number'], 'phone_code_hash' => $this->authorization['phone_code_hash'], 'phone_code' => $this->authorization['phone_code'], 'first_name' => $first_name, 'last_name' => $last_name])]]></code>
+      <code><![CDATA[$this->API->loginState->getState()->setDc($datacenter)]]></code>
     </MixedArgument>
     <MixedArrayAccess>
       <code><![CDATA[$authorization['_']]]></code>
       <code><![CDATA[$authorization['_']]]></code>
       <code><![CDATA[$authorization['_']]]></code>
-      <code><![CDATA[$authorization['authorization']]]></code>
       <code><![CDATA[$authorization['dc_id']]]></code>
       <code><![CDATA[$authorization['dc_id']]]></code>
       <code><![CDATA[$authorization['expires']]]></code>
@@ -8265,8 +8287,7 @@
     </MixedArrayAccess>
     <MixedArrayAssignment>
       <code><![CDATA[$authorization['_']]]></code>
-      <code><![CDATA[$this->authorization['hint']]]></code>
-      <code><![CDATA[$this->authorization['hint']]]></code>
+      <code><![CDATA[$authorization['specialMethodType']]]></code>
       <code><![CDATA[$this->authorization['phone_number']]]></code>
     </MixedArrayAssignment>
     <MixedAssignment>
@@ -8278,15 +8299,17 @@
       <code><![CDATA[$res]]></code>
       <code><![CDATA[$this->authorization]]></code>
       <code><![CDATA[$this->authorization]]></code>
-      <code><![CDATA[$this->authorization]]></code>
-      <code><![CDATA[$this->authorization]]></code>
-      <code><![CDATA[$this->authorization]]></code>
-      <code><![CDATA[$this->authorization]]></code>
-      <code><![CDATA[$this->authorized_dc]]></code>
     </MixedAssignment>
+    <MixedMethodCall>
+      <code><![CDATA[getState]]></code>
+      <code><![CDATA[setDc]]></code>
+    </MixedMethodCall>
     <MixedOperand>
       <code><![CDATA[$authorization['dc_id']]]></code>
     </MixedOperand>
+    <MixedPropertyFetch>
+      <code><![CDATA[$this->API->loginState]]></code>
+    </MixedPropertyFetch>
     <PossiblyNullArrayAccess>
       <code><![CDATA[$this->authorization['phone_code']]]></code>
       <code><![CDATA[$this->authorization['phone_code_hash']]]></code>
@@ -8294,9 +8317,25 @@
       <code><![CDATA[$this->authorization['phone_number']]]></code>
       <code><![CDATA[$this->authorization['phone_number']]]></code>
     </PossiblyNullArrayAccess>
+    <PossiblyNullReference>
+      <code><![CDATA[getState]]></code>
+      <code><![CDATA[getState]]></code>
+      <code><![CDATA[getState]]></code>
+      <code><![CDATA[getState]]></code>
+      <code><![CDATA[getState]]></code>
+      <code><![CDATA[getState]]></code>
+      <code><![CDATA[getState]]></code>
+      <code><![CDATA[getState]]></code>
+      <code><![CDATA[getState]]></code>
+      <code><![CDATA[publish]]></code>
+      <code><![CDATA[publish]]></code>
+    </PossiblyNullReference>
     <RedundantConditionGivenDocblockType>
       <code><![CDATA[\is_array($auth_key)]]></code>
     </RedundantConditionGivenDocblockType>
+    <UndefinedThisPropertyFetch>
+      <code><![CDATA[$this->API]]></code>
+    </UndefinedThisPropertyFetch>
   </file>
   <file src="src/Wrappers/Loop.php">
     <MissingReturnType>
@@ -8307,9 +8346,6 @@
     </PossiblyInvalidOperand>
   </file>
   <file src="src/Wrappers/Start.php">
-    <DocblockTypeContradiction>
-      <code><![CDATA[$this->getAuthorization() === \danog\MadelineProto\API::LOGGED_IN]]></code>
-    </DocblockTypeContradiction>
     <InvalidFalsableReturnType>
       <code><![CDATA[array]]></code>
     </InvalidFalsableReturnType>

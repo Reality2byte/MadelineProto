@@ -107,7 +107,6 @@ trait Events
         }
         $this->getUpdatesQueue->clear();
         $this->getUpdatesQueueKey = 0;
-        $this->startUpdateSystem();
     }
     /**
      * Check if a certain event handler plugin is installed.

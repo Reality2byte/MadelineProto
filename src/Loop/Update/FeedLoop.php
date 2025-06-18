@@ -21,11 +21,14 @@ declare(strict_types=1);
 namespace danog\MadelineProto\Loop\Update;
 
 use danog\Loop\Loop;
+use danog\MadelineProto\API;
 use danog\MadelineProto\AsyncTools;
 use danog\MadelineProto\Logger;
 use danog\MadelineProto\Loop\InternalLoop;
 use danog\MadelineProto\MTProto;
+use danog\MadelineProto\MTProto\LoginState;
 use danog\MadelineProto\MTProtoTools\UpdatesState;
+use danog\MadelineProto\Reactive\SimpleSubscriber;
 
 /**
  * Update feed loop.
@@ -33,8 +36,10 @@ use danog\MadelineProto\MTProtoTools\UpdatesState;
  * @internal
  *
  * @author Daniil Gentili <daniil@daniil.it>
+ *
+ * @implements SimpleSubscriber<LoginState>
  */
-final class FeedLoop extends Loop
+final class FeedLoop extends Loop implements SimpleSubscriber
 {
     use InternalLoop {
         __construct as private init;
@@ -59,16 +64,30 @@ final class FeedLoop extends Loop
      * Update state.
      */
     private ?UpdatesState $state = null;
+    private bool $mustPause;
     /**
      * Constructor.
      */
     public function __construct(MTProto $API, private int $channelId = 0)
     {
         $this->init($API);
+        $API->loginState->subscribe($this);
     }
     public function __sleep(): array
     {
         return ['incomingUpdates', 'parsedUpdates', 'updater', 'API', 'state', 'channelId'];
+    }
+    #[\Override]
+    public function onSimpleStateChange($state): void
+    {
+        $this->mustPause = $state->state !== API::LOGGED_IN;
+        if (!$this->mustPause) {
+            if ($this->isRunning()) {
+                $this->resume(true);
+            } else {
+                $this->start();
+            }
+        }
     }
     /**
      * Main loop.
@@ -76,7 +95,7 @@ final class FeedLoop extends Loop
     #[\Override]
     public function loop(): ?float
     {
-        if (!$this->isLoggedIn()) {
+        if ($this->mustPause) {
             return self::PAUSE;
         }
         $this->updater = $this->API->updaters[$this->channelId];

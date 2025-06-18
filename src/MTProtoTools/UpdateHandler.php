@@ -124,6 +124,7 @@ use danog\MadelineProto\Lang;
 use danog\MadelineProto\Logger;
 use danog\MadelineProto\Loop\Update\FeedLoop;
 use danog\MadelineProto\Loop\Update\UpdateLoop;
+use danog\MadelineProto\MTProto\SpecialMethodType;
 use danog\MadelineProto\ParseMode;
 use danog\MadelineProto\PeerNotInDbException;
 use danog\MadelineProto\ResponseException;
@@ -181,7 +182,6 @@ trait UpdateHandler
         $this->eventHandlerMethods = [];
         $this->eventHandlerHandlers = [];
         $this->pluginInstances = [];
-        $this->startUpdateSystem();
     }
     /**
      * PWRTelegram webhook URL.
@@ -209,7 +209,6 @@ trait UpdateHandler
         $this->eventHandlerMethods = [];
         $this->eventHandlerHandlers = [];
         $this->pluginInstances = [];
-        $this->startUpdateSystem();
     }
 
     /**
@@ -1137,26 +1136,25 @@ trait UpdateHandler
                     [
                         'api_id' => $this->settings->getAppInfo()->getApiId(),
                         'api_hash' => $this->settings->getAppInfo()->getApiHash(),
+                        'specialMethodType' => SpecialMethodType::USER_RELATED,
                     ],
                 );
-                $datacenter = $this->datacenter->currentDatacenter;
                 if ($authorization['_'] === 'auth.loginTokenMigrateTo') {
                     $datacenter = $this->isTestMode() ? 10_000 + $authorization['dc_id'] : $authorization['dc_id'];
-                    $this->authorized_dc = $datacenter;
+                    $this->loginState->publish($this->loginState->getState()->setDc($datacenter));
+                    $authorization['specialMethodType'] = SpecialMethodType::USER_RELATED;
                     $authorization = $this->methodCallAsyncRead(
                         'auth.importLoginToken',
                         $authorization,
-                        $datacenter
                     );
                 }
-                $this->processAuthorization($authorization['authorization']);
             } catch (SessionPasswordNeededError) {
                 $this->logger->logger(Lang::$current_lang['login_2fa_enabled'], Logger::NOTICE);
-                $this->authorization = $this->methodCallAsyncRead('account.getPassword', [], $datacenter ?? null);
+                $this->authorization = $this->getPassword();
                 if (!isset($this->authorization['hint'])) {
                     $this->authorization['hint'] = '';
                 }
-                $this->authorized = API::WAITING_PASSWORD;
+                $this->setLoginState(API::WAITING_PASSWORD);
                 $this->qrLoginDeferred?->cancel();
                 $this->qrLoginDeferred = null;
                 return;

@@ -21,8 +21,10 @@ declare(strict_types=1);
 namespace danog\MadelineProto\Loop\Secret;
 
 use danog\Loop\Loop;
+use danog\MadelineProto\API;
 use danog\MadelineProto\Loop\InternalLoop;
 use danog\MadelineProto\MTProto;
+use danog\MadelineProto\Reactive\SimpleSubscriber;
 use danog\MadelineProto\SecretChats\SecretChatController;
 use danog\MadelineProto\SecurityException;
 
@@ -32,8 +34,10 @@ use danog\MadelineProto\SecurityException;
  * @internal
  *
  * @author Daniil Gentili <daniil@daniil.it>
+ *
+ * @implements SimpleSubscriber<LoginState>
  */
-final class SecretFeedLoop extends Loop
+final class SecretFeedLoop extends Loop implements SimpleSubscriber
 {
     use InternalLoop {
         __construct as private init;
@@ -42,6 +46,7 @@ final class SecretFeedLoop extends Loop
      * Incoming secret updates array.
      */
     private array $incomingUpdates = [];
+    private bool $mustPause;
     /**
      * Constructor.
      *
@@ -50,6 +55,7 @@ final class SecretFeedLoop extends Loop
     public function __construct(MTProto $API, private readonly SecretChatController $secretChat)
     {
         $this->init($API);
+        $API->loginState->subscribe($this);
     }
     public function __sleep()
     {
@@ -62,12 +68,29 @@ final class SecretFeedLoop extends Loop
         }
         $this->init($this->API);
     }
+
+    #[\Override]
+    public function onSimpleStateChange($state): void
+    {
+        $this->mustPause = $state->state !== API::LOGGED_IN;
+        if (!$this->mustPause) {
+            if ($this->isRunning()) {
+                $this->resume(true);
+            } else {
+                $this->start();
+            }
+        }
+    }
+
     /**
      * Main loop.
      */
     #[\Override]
     public function loop(): ?float
     {
+        if ($this->mustPause) {
+            return self::PAUSE;
+        }
         $this->API->logger("Resumed {$this}");
         while ($this->incomingUpdates) {
             $updates = $this->incomingUpdates;
