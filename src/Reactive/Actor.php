@@ -24,6 +24,8 @@ use SplQueue;
 /**
  * @template T
  *
+ * @internal
+ *
  * @implements Subscriber<T>
  */
 final class Actor implements Subscriber

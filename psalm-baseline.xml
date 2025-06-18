@@ -525,15 +525,9 @@
       <code><![CDATA[$method]]></code>
       <code><![CDATA[$res]]></code>
     </MixedAssignment>
-    <PossiblyNullArgument>
-      <code><![CDATA[$this->API->loginState]]></code>
-    </PossiblyNullArgument>
     <PossiblyNullOperand>
       <code><![CDATA[$this->auth->getID()]]></code>
     </PossiblyNullOperand>
-    <PossiblyNullReference>
-      <code><![CDATA[getState]]></code>
-    </PossiblyNullReference>
     <PropertyNotSetInConstructor>
       <code><![CDATA[$connectionsPromise]]></code>
       <code><![CDATA[$permAuthKey]]></code>
@@ -2943,9 +2937,6 @@
     <MixedAssignment>
       <code><![CDATA[$update]]></code>
     </MixedAssignment>
-    <PossiblyNullReference>
-      <code><![CDATA[subscribe]]></code>
-    </PossiblyNullReference>
     <PropertyNotSetInConstructor>
       <code><![CDATA[$mustPause]]></code>
       <code><![CDATA[SecretFeedLoop]]></code>
@@ -3021,7 +3012,6 @@
       <code><![CDATA[pts]]></code>
       <code><![CDATA[resume]]></code>
       <code><![CDATA[resume]]></code>
-      <code><![CDATA[subscribe]]></code>
     </PossiblyNullReference>
     <PropertyNotSetInConstructor>
       <code><![CDATA[$mustPause]]></code>
@@ -3056,7 +3046,6 @@
     <PossiblyNullReference>
       <code><![CDATA[checkSeq]]></code>
       <code><![CDATA[feed]]></code>
-      <code><![CDATA[subscribe]]></code>
     </PossiblyNullReference>
     <PropertyNotSetInConstructor>
       <code><![CDATA[$mustPause]]></code>
@@ -3199,9 +3188,6 @@
       <code><![CDATA[$this->API->authorization['user']]]></code>
       <code><![CDATA[$this->API->authorization['user']['bot']]]></code>
     </PossiblyNullArrayAccess>
-    <PossiblyNullReference>
-      <code><![CDATA[subscribe]]></code>
-    </PossiblyNullReference>
     <PossiblyUndefinedVariable>
       <code><![CDATA[$difference]]></code>
       <code><![CDATA[$difference]]></code>
@@ -3255,6 +3241,7 @@
       <code><![CDATA[isset($this->settings)]]></code>
       <code><![CDATA[isset($this->settings)]]></code>
       <code><![CDATA[new PeerDatabase($this)]]></code>
+      <code><![CDATA[new Publisher(new LoginState($this->authorized, $this->authorized_dc))]]></code>
     </DocblockTypeContradiction>
     <ImpureMethodCall>
       <code><![CDATA[load]]></code>
@@ -3402,13 +3389,7 @@
       <code><![CDATA[$this->authorization['user']['id']]]></code>
     </PossiblyNullArrayAccess>
     <PossiblyNullReference>
-      <code><![CDATA[getState]]></code>
-      <code><![CDATA[getState]]></code>
-      <code><![CDATA[getState]]></code>
-      <code><![CDATA[getState]]></code>
-      <code><![CDATA[getState]]></code>
       <code><![CDATA[init]]></code>
-      <code><![CDATA[publish]]></code>
       <code><![CDATA[saveDbProperties]]></code>
       <code><![CDATA[start]]></code>
     </PossiblyNullReference>
@@ -3424,6 +3405,7 @@
       <code><![CDATA[isset($this->wrapper) && isset(self::$references[$this->getSessionName()])]]></code>
     </RedundantCondition>
     <RedundantConditionGivenDocblockType>
+      <code><![CDATA[$this->loginState]]></code>
       <code><![CDATA[$this->peerDatabase]]></code>
       <code><![CDATA[isset($this->datacenter)]]></code>
       <code><![CDATA[isset($this->datacenter)]]></code>
@@ -3814,12 +3796,6 @@
     <PossiblyInvalidArgument>
       <code><![CDATA[$response]]></code>
     </PossiblyInvalidArgument>
-    <PossiblyNullReference>
-      <code><![CDATA[getState]]></code>
-      <code><![CDATA[getState]]></code>
-      <code><![CDATA[getState]]></code>
-      <code><![CDATA[publish]]></code>
-    </PossiblyNullReference>
   </file>
   <file src="src/MTProtoSession/Session.php">
     <MissingConstructor>
@@ -3861,9 +3837,6 @@
     <MissingReturnType>
       <code><![CDATA[methodCallAsyncRead]]></code>
     </MissingReturnType>
-    <PossiblyNullReference>
-      <code><![CDATA[getState]]></code>
-    </PossiblyNullReference>
   </file>
   <file src="src/MTProtoTools/FileServer.php">
     <MixedArrayOffset>
@@ -4237,12 +4210,6 @@
       <code><![CDATA[getReference]]></code>
       <code><![CDATA[getReference]]></code>
       <code><![CDATA[getReference]]></code>
-      <code><![CDATA[getState]]></code>
-      <code><![CDATA[getState]]></code>
-      <code><![CDATA[getState]]></code>
-      <code><![CDATA[getState]]></code>
-      <code><![CDATA[getState]]></code>
-      <code><![CDATA[getState]]></code>
     </PossiblyNullReference>
     <PossiblyUndefinedArrayOffset>
       <code><![CDATA[$messageMedia['bytes']]]></code>
@@ -5411,8 +5378,6 @@
     </PossiblyNullArrayAccess>
     <PossiblyNullReference>
       <code><![CDATA[addPendingWakeups]]></code>
-      <code><![CDATA[getState]]></code>
-      <code><![CDATA[publish]]></code>
       <code><![CDATA[waitForInternalStart]]></code>
     </PossiblyNullReference>
     <PossiblyUndefinedArrayOffset>
@@ -6006,9 +5971,6 @@
       <code><![CDATA[$seqno]]></code>
       <code><![CDATA[$this->gapEnd]]></code>
     </MixedOperand>
-    <PossiblyNullReference>
-      <code><![CDATA[subscribe]]></code>
-    </PossiblyNullReference>
     <PropertyNotSetInConstructor>
       <code><![CDATA[$incoming]]></code>
       <code><![CDATA[$outgoing]]></code>
@@ -8240,9 +8202,6 @@
     <PossiblyNullArrayOffset>
       <code><![CDATA[$dialogs]]></code>
     </PossiblyNullArrayOffset>
-    <PossiblyNullReference>
-      <code><![CDATA[getState]]></code>
-    </PossiblyNullReference>
     <TypeDoesNotContainType>
       <code><![CDATA[$this->cachedAllBotUsers]]></code>
       <code><![CDATA[$this->cachedAllBotUsers]]></code>
@@ -8274,6 +8233,7 @@
     <MixedArgument>
       <code><![CDATA[$authorization]]></code>
       <code><![CDATA[$authorization['expires']]]></code>
+      <code><![CDATA[$dc]]></code>
       <code><![CDATA[$this->API->loginState->getState()->setDc($datacenter)]]></code>
     </MixedArgument>
     <MixedArrayAccess>
@@ -8295,6 +8255,7 @@
       <code><![CDATA[$authorization]]></code>
       <code><![CDATA[$authorization]]></code>
       <code><![CDATA[$datacenter]]></code>
+      <code><![CDATA[$dc]]></code>
       <code><![CDATA[$res]]></code>
       <code><![CDATA[$res]]></code>
       <code><![CDATA[$this->authorization]]></code>
@@ -8310,6 +8271,9 @@
     <MixedPropertyFetch>
       <code><![CDATA[$this->API->loginState]]></code>
     </MixedPropertyFetch>
+    <MoreSpecificReturnType>
+      <code><![CDATA[array{0: int, 1: string}]]></code>
+    </MoreSpecificReturnType>
     <PossiblyNullArrayAccess>
       <code><![CDATA[$this->authorization['phone_code']]]></code>
       <code><![CDATA[$this->authorization['phone_code_hash']]]></code>
@@ -8317,19 +8281,6 @@
       <code><![CDATA[$this->authorization['phone_number']]]></code>
       <code><![CDATA[$this->authorization['phone_number']]]></code>
     </PossiblyNullArrayAccess>
-    <PossiblyNullReference>
-      <code><![CDATA[getState]]></code>
-      <code><![CDATA[getState]]></code>
-      <code><![CDATA[getState]]></code>
-      <code><![CDATA[getState]]></code>
-      <code><![CDATA[getState]]></code>
-      <code><![CDATA[getState]]></code>
-      <code><![CDATA[getState]]></code>
-      <code><![CDATA[getState]]></code>
-      <code><![CDATA[getState]]></code>
-      <code><![CDATA[publish]]></code>
-      <code><![CDATA[publish]]></code>
-    </PossiblyNullReference>
     <RedundantConditionGivenDocblockType>
       <code><![CDATA[\is_array($auth_key)]]></code>
     </RedundantConditionGivenDocblockType>

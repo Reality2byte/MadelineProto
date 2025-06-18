@@ -24,6 +24,8 @@ use Amp\DeferredFuture;
 /**
  * @template T
  *
+ * @internal
+ *
  * @implements Subscriber<T>
  */
 final class AsyncWaiter implements Subscriber

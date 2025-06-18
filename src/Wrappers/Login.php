@@ -47,7 +47,7 @@ use danog\MadelineProto\Tools;
  *
  * @property Settings     $settings    Settings
  * @property ?LoginQrCode $loginQrCode
- * @property ?Publisher<LoginState> $loginState
+ * @property Publisher<LoginState> $loginState
  * @internal
  */
 trait Login
@@ -286,6 +286,21 @@ trait Login
         $this->fullGetSelf();
         return $res;
     }
+    /**
+     * Export authorization.
+     *
+     * @return array{0: int, 1: string}
+     */
+    public function exportAuthorization(): array
+    {
+        $this->fullGetSelf();
+        if ($this->loginState->getState()->state !== \danog\MadelineProto\API::LOGGED_IN) {
+            throw new Exception(Lang::$current_lang['not_loggedIn']);
+        }
+        $dc = $this->loginState->getState()->authorizedDc;
+        return [$dc, $this->datacenter->getDataCenterConnection($dc)->auth->getAuthKey()];
+    }
+
     /**
      * Complete signup to Telegram.
      *

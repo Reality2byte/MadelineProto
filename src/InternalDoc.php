@@ -567,7 +567,7 @@ abstract class InternalDoc
     /**
      * Export authorization.
      *
-     * @return array{0: (int|string), 1: string}
+     * @return array{0: int, 1: string}
      */
     final public function exportAuthorization(): array
     {

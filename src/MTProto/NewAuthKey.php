@@ -157,6 +157,13 @@ final class NewAuthKey implements SimpleSubscriber
     /**
      * Get auth key.
      */
+    public function getAuthKey(): ?string
+    {
+        return $this->authKey;
+    }
+    /**
+     * Get temp auth key.
+     */
     public function getTempAuthKey(): ?string
     {
         return $this->tempAuthKey;

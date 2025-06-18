@@ -57,14 +57,14 @@ echo "Bot login:".PHP_EOL;
 $bot = new \danog\MadelineProto\API('fuzz_bot.madeline');
 $bot->start();
 $bot->updateSettings($schema);
-Assert::true($bot->isSelfBot(), "bot.madeline is not a bot!");
+Assert::true($bot->isSelfBot(), "fuzz_bot.madeline is not a bot!");
 $bot->restart();
 
 echo "User login:".PHP_EOL;
 $user = new \danog\MadelineProto\API('fuzz_user.madeline');
 $user->start();
 $user->updateSettings($schema);
-Assert::true($user->isSelfUser(), "user.madeline is not a user!");
+Assert::true($user->isSelfUser(), "fuzz_user.madeline is not a user!");
 $user->restart();
 
 $methods = [];
