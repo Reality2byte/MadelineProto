@@ -75,7 +75,7 @@ final class NewAuthKey implements SimpleSubscriber
             $state = $this->mainKey->connectionState->getState();
 
             if ($this->connectionState->getState() === ConnectionState::UNENCRYPTED_MEDIA_WAITING_MAIN) {
-                if ($state->isEncrypted()) {
+                if ($state === ConnectionState::ENCRYPTED) {
                     $this->setAuthKey($this->mainKey->authKey);
                 }
             } else {
