@@ -4,7 +4,6 @@ set -ex
 
 export COMPOSER_PROCESS_TIMEOUT=100000
 
-apt-get install procps git unzip gh openssh-client
 sudo mkdir -p -m 755 /etc/apt/keyrings
 out=$(mktemp) && wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg
 cat $out | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null
@@ -12,7 +11,8 @@ chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
 mkdir -p -m 755 /etc/apt/sources.list.d
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
 apt update
-apt install gh -y
+
+apt-get install procps git unzip gh openssh-client -y
 
 cd /tmp
 
