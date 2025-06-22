@@ -3549,6 +3549,13 @@
     <PossiblyNullArgument>
       <code><![CDATA[$this->authKey]]></code>
     </PossiblyNullArgument>
+    <PossiblyNullPropertyFetch>
+      <code><![CDATA[$this->mainKey->authKey]]></code>
+      <code><![CDATA[$this->mainKey->connectionState]]></code>
+    </PossiblyNullPropertyFetch>
+    <PossiblyNullReference>
+      <code><![CDATA[getState]]></code>
+    </PossiblyNullReference>
     <PropertyNotSetInConstructor>
       <code><![CDATA[$authedDcId]]></code>
     </PropertyNotSetInConstructor>
