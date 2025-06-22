@@ -54,7 +54,6 @@ final class NewAuthKey implements SimpleSubscriber
         Publisher $loginState,
         private readonly ?self $mainKey = null
     ) {
-        ;
         $this->connectionState = new Publisher(
             $isCdn
                 ? ConnectionState::UNENCRYPTED
@@ -73,9 +72,10 @@ final class NewAuthKey implements SimpleSubscriber
     public function onSimpleStateChange($state): void
     {
         if ($state instanceof ConnectionState) {
+            $state = $this->mainKey->connectionState->getState();
+
             if ($this->connectionState->getState() === ConnectionState::UNENCRYPTED_MEDIA_WAITING_MAIN) {
-                if ($state === ConnectionState::ENCRYPTED_NOT_BOUND) {
-                    Assert::notNull($this->mainKey);
+                if ($state->isEncrypted()) {
                     $this->setAuthKey($this->mainKey->authKey);
                 }
             } else {
