@@ -634,10 +634,10 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
     {
         // Initialize needed stuffs
         Magic::start(light: false);
-        // Actually instantiate needed classes like a boss
-        $this->cleanupProperties();
         // Parse and store settings
         $this->updateSettingsInternal($settings, false);
+        // Actually instantiate needed classes like a boss
+        $this->cleanupProperties();
         // Load rsa keys
         $this->rsa_keys = [];
         foreach ($this->settings->getConnection()->getRSAKeys() as $key) {
@@ -1100,6 +1100,7 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
         $this->resetMTProtoSession("upgrading madelineproto", true, true);
         $this->config = ['expires' => -1];
         $this->dh_config = ['version' => 0];
+        $this->cleanupProperties();
         $this->initialize($this->settings);
         foreach ($this->secretChats as $chat) {
             try {
