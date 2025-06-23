@@ -83,8 +83,7 @@ trait CallHandler
             /** @var MTProtoOutgoingMessage */
             $request->setMsgId(null);
             $request->setSeqNo(null);
-            $request->next->prev = $request->prev;
-            $request->prev->next = $request->next;
+            $request->unlink();
         }
         if ($datacenter === $this->datacenter) {
             EventLoop::queue($this->sendMessage(...), $request);

@@ -205,8 +205,7 @@ class MTProtoOutgoingMessage extends MTProtoMessage
         }
         $this->state |= self::STATE_SENT;
         if (!$this instanceof Container) {
-            $this->next->prev = $this->prev;
-            $this->prev->next = $this->next;
+            $this->unlink();
         }
         $this->sent = hrtime(true);
         if ($this->contentRelated) {
@@ -220,6 +219,12 @@ class MTProtoOutgoingMessage extends MTProtoMessage
             $this->sendDeferred = null;
             $sendDeferred->complete();
         }
+    }
+    public function unlink(): void
+    {
+        $this->next->prev = $this->prev;
+        $this->prev->next = $this->next;
+        $this->connection->pendingOutgoingGauge?->dec();
     }
     private function check(): void
     {

@@ -559,6 +559,7 @@ final class Connection
         } elseif ($message->specialMethodType === SpecialMethodType::UNAUTHED_METHOD) {
             $this->uninitedPendingOutgoing->enqueue($message);
         } else {
+            $this->pendingOutgoingGauge?->inc();
             $this->mainPendingOutgoing->enqueue($message);
         }
         $this->flush();
