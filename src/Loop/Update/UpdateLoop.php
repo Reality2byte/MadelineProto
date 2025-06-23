@@ -67,7 +67,7 @@ final class UpdateLoop extends Loop implements SimpleSubscriber
      * Feed loop.
      */
     private ?FeedLoop $feeder = null;
-    private ?int $authorizedDc;
+    private ?int $authorizedDc = null;
     /**
      * Constructor.
      */
