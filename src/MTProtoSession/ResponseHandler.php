@@ -23,7 +23,6 @@ namespace danog\MadelineProto\MTProtoSession;
 use Amp\SignalException;
 use danog\BetterPrometheus\BetterHistogram;
 use danog\Loop\Loop;
-use danog\MadelineProto\API;
 use danog\MadelineProto\DataCenterConnection;
 use danog\MadelineProto\FileRedirect;
 use danog\MadelineProto\Lang;
@@ -71,7 +70,7 @@ trait ResponseHandler
             }
             try {
                 match ($type) {
-                    'msgs_ack' => $this->handleAck($message),
+                    'msgs_ack' => $message->read(),
 
                     'rpc_result',
                     'future_salts',
@@ -97,16 +96,6 @@ trait ResponseHandler
             }
         }
         return Loop::PAUSE;
-    }
-    private function handleAck(MTProtoIncomingMessage $message): void
-    {
-        $message->read();
-        /*foreach ($message->read()['msg_ids'] as $msg_id) {
-            // Acknowledge that the server received my message
-            if (!isset($this->outgoing_messages[$msg_id])) {
-                $this->API->logger("WARNING: Couldn't find message id ".$msg_id.' in the array of outgoing messages. Maybe try to increase its size?', Logger::WARNING);
-            }
-        }*/
     }
     private function handleFallback(MTProtoIncomingMessage $message): void
     {
@@ -317,7 +306,7 @@ trait ResponseHandler
                 if ($this->API->isTestMode()) {
                     $datacenter += 10_000;
                 }
-                if ($request->fileRelated) {
+                if ($request->specialMethodType === SpecialMethodType::FILE_RELATED) {
                     return fn () => new FileRedirect(
                         $this->API->datacenter->has(-$datacenter)
                             ? -$datacenter

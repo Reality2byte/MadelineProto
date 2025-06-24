@@ -116,10 +116,6 @@ class MTProtoOutgoingMessage extends MTProtoMessage
         public readonly ?Cancellation $cancellation,
         public readonly ?string $subtype = null,
         /**
-         * Whether this message is related to a file upload, as in getting a redirect should redirect to a media server.
-         */
-        public readonly bool $fileRelated = false,
-        /**
          * Custom flood wait limit for this message.
          */
         public readonly ?int $floodWaitLimit = null,

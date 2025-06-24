@@ -29,6 +29,7 @@ use danog\MadelineProto\DataCenterConnection;
 use danog\MadelineProto\MTProto;
 use danog\MadelineProto\MTProto\Container;
 use danog\MadelineProto\MTProto\MTProtoOutgoingMessage;
+use danog\MadelineProto\MTProto\SpecialMethodType;
 use danog\MadelineProto\TL\Exception;
 use danog\MadelineProto\WrappedFuture;
 use Revolt\EventLoop;
@@ -144,8 +145,12 @@ trait CallHandler
         if (isset($args['id']) && \is_array($args['id']) && isset($args['id']['_']) && isset($args['id']['dc_id']) && ($args['id']['_'] === 'inputBotInlineMessageID' || $args['id']['_'] === 'inputBotInlineMessageID64') && $this->datacenter != $args['id']['dc_id']) {
             return $this->API->methodCallAsyncWrite($method, $args, $args['id']['dc_id']);
         }
-        $file = \in_array($method, ['upload.saveFilePart', 'upload.saveBigFilePart', 'upload.getFile', 'upload.getCdnFile'], true);
-        if ($file && !$this->shared->auth->isMedia && $this->API->datacenter->has(-$this->datacenter)) {
+        $special = $args['specialMethodType'] ?? null;
+        if ($special === SpecialMethodType::FILE_RELATED
+            && !$this->shared->auth->isMedia
+            && !$this->shared->auth->isCdn
+            && $this->API->datacenter->has(-$this->datacenter)
+        ) {
             $this->API->logger('Using media DC');
             return $this->API->methodCallAsyncWrite($method, $args, -$this->datacenter);
         }
@@ -177,10 +182,9 @@ trait CallHandler
             constructor: $method,
             type: $methodInfo['type'],
             subtype: $methodInfo['subtype'] ?? null,
-            specialMethodType: $args['specialMethodType'] ?? null,
+            specialMethodType: $special,
             isMethod: true,
             unencrypted: !$encrypted,
-            fileRelated: $file,
             floodWaitLimit: $args['floodWaitLimit'] ?? null,
             resultDeferred: $response,
             cancellation: $cancellation,
@@ -200,7 +204,7 @@ trait CallHandler
      * @param string $object Object name
      * @param array  $args   Arguments
      */
-    public function objectCallAsync(string $object, array $args, DeferredFuture $promise): void
+    public function objectCallAsync(string $object, array $args, ?DeferredFuture $promise = null): void
     {
         $cancellation = $args['cancellation'] ?? null;
         $cancellation?->throwIfRequested();

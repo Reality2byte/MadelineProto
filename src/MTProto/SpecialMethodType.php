@@ -24,4 +24,5 @@ enum SpecialMethodType
 {
     case UNAUTHED_METHOD;
     case USER_RELATED;
+    case FILE_RELATED;
 }

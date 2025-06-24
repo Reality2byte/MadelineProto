@@ -109,16 +109,16 @@ final class WriteLoop extends Loop implements Subscriber, EphemeralSubscriber
                 };
                 $this->pendingState = null;
             }
-            if ($this->queue->isEmpty()) {
-                $this->API->logger("No messages, pausing in $this...", Logger::ULTRA_VERBOSE);
-                return self::LONG_POLL_TIMEOUT;
-            }
             $this->connection->writing(true);
             try {
                 if ($this->queue === $this->connection->unencryptedPendingOutgoing) {
                     $this->unencryptedWriteLoop();
                 } else {
                     $this->encryptedWriteLoop();
+                }
+                if ($this->pendingState === null) {
+                    $this->API->logger("No messages, pausing in $this...", Logger::ULTRA_VERBOSE);
+                    return self::LONG_POLL_TIMEOUT;
                 }
             } catch (StreamException $e) {
                 if ($this->connection->shouldReconnect()) {
@@ -171,7 +171,13 @@ final class WriteLoop extends Loop implements Subscriber, EphemeralSubscriber
     }
     public function encryptedWriteLoop(): void
     {
-        while ($this->pendingState === null && !$this->queue->isEmpty()) {
+        while ($this->pendingState === null &&
+            (
+                !$this->queue->isEmpty()
+                || $this->connection->ack_queue
+                || $this->connection->check_queue->count()
+            )
+        ) {
             if (0 !== ($check = $this->connection->check_queue)->count()) {
                 $this->connection->check_queue = new WeakMap;
                 $deferred = new DeferredFuture();
@@ -207,6 +213,7 @@ final class WriteLoop extends Loop implements Subscriber, EphemeralSubscriber
                             $message = $arr[$key];
                             if ($message->hasReply()) {
                                 $this->API->logger("Already got response for and forgot about message $message");
+                                $this->connection->ack_queue[] = $message->getMsgId();
                                 continue;
                             }
                             $chr = \ord($chr);
@@ -261,6 +268,7 @@ final class WriteLoop extends Loop implements Subscriber, EphemeralSubscriber
 
             $has_state = false;
             $has_resend = false;
+            $has_content_related = false;
 
             $message = $this->queue;
             while (($message = $message->prev) instanceof MTProtoOutgoingMessage) {
@@ -310,6 +318,8 @@ final class WriteLoop extends Loop implements Subscriber, EphemeralSubscriber
                 $MTmessages[] = $MTmessage;
                 $messages[] = $message;
 
+                $has_content_related = $has_content_related || $message->hasPromise();
+
                 $message->setSeqNo($MTmessage['seqno'])
                         ->setMsgId($MTmessage['msg_id']);
             }
@@ -347,11 +357,14 @@ final class WriteLoop extends Loop implements Subscriber, EphemeralSubscriber
             if ($count > 1 || $has_seq) {
                 $message_id = $this->connection->msgIdHandler->generateMessageId();
                 $this->API->logger("Wrapping in msg_container ({$count} messages of total size {$total_length}, id $message_id) as encrypted message for DC {$this->datacenter}", Logger::ULTRA_VERBOSE);
-                $messages []= $ct = new Container(
+                $ct = new Container(
                     $this->connection,
                     $messages,
                     $acks,
                 );
+                if ($has_content_related) {
+                    $messages []= $ct;
+                }
                 $this->connection->outgoingCtr?->inc();
                 $message_data = $this->API->getTL()->serializeObject(['type' => ''], ['_' => 'msg_container', 'messages' => $MTmessages], 'container');
                 $message_data_length = \strlen($message_data);

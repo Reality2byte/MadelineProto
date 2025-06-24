@@ -361,11 +361,6 @@ final class DataCenterConnection implements SimpleSubscriber
         $backup = $this->connections[$id]->backupSession();
         $list = '';
         foreach ($backup as $k => $message) {
-            if ($message->constructor === 'msgs_state_req'
-                || $message->constructor === 'ping_delay_disconnect') {
-                unset($backup[$k]);
-                continue;
-            }
             $list .= $message->constructor;
             $list .= ', ';
         }

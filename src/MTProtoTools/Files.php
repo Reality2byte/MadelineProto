@@ -46,6 +46,7 @@ use danog\MadelineProto\Exception;
 use danog\MadelineProto\FileCallbackInterface;
 use danog\MadelineProto\FileRedirect;
 use danog\MadelineProto\Logger;
+use danog\MadelineProto\MTProto\SpecialMethodType;
 use danog\MadelineProto\MTProtoTools\Crypt\IGE;
 use danog\MadelineProto\RPCError\FileTokenInvalidError;
 use danog\MadelineProto\RPCError\FloodPremiumWaitError;
@@ -328,13 +329,13 @@ trait Files
                     $floodWaitError?->wait($cancellation);
                     return $this->methodCallAsyncWrite(
                         $method,
-                        $callable($part_num) + ['cancellation' => $cancellation, 'floodWaitLimit' => 0],
+                        $callable($part_num) + ['cancellation' => $cancellation, 'floodWaitLimit' => 0, 'specialMethodType' => SpecialMethodType::FILE_RELATED],
                         $datacenter
                     );
                 };
             } else {
                 try {
-                    $part = $callable($part_num) + ['cancellation' => $cancellation, 'floodWaitLimit' => 0];
+                    $part = $callable($part_num) + ['cancellation' => $cancellation, 'floodWaitLimit' => 0, 'specialMethodType' => SpecialMethodType::FILE_RELATED];
                 } catch (StreamEof) {
                     break;
                 }
@@ -1207,9 +1208,9 @@ trait Files
     {
         do {
             if (!$cdn) {
-                $basic_param = ['location' => $messageMedia['InputFileLocation'], 'cdn_supported' => true, 'floodWaitLimit' => 0, 'cancellation' => $cancellation];
+                $basic_param = ['location' => $messageMedia['InputFileLocation'], 'cdn_supported' => true, 'floodWaitLimit' => 0, 'cancellation' => $cancellation, 'specialMethodType' => SpecialMethodType::FILE_RELATED];
             } else {
-                $basic_param = ['file_token' => $messageMedia['file_token'], 'floodWaitLimit' => 0, 'cancellation' => $cancellation];
+                $basic_param = ['file_token' => $messageMedia['file_token'], 'floodWaitLimit' => 0, 'cancellation' => $cancellation, 'specialMethodType' => SpecialMethodType::FILE_RELATED];
             }
             do {
                 $cancellation?->throwIfRequested();

@@ -52,6 +52,7 @@ final class PingLoop extends Loop implements SimpleSubscriber, EphemeralSubscrib
         $this->constructCommon($connection);
         $this->timeout = $timeout = $this->shared->getSettings()->getPingInterval();
         $this->timeoutDisconnect = $timeout + 15;
+        $this->timeoutSeconds = (float) $this->timeout;
         $connection->getShared()->auth->connectionState->subscribe($this);
     }
     #[\Override]
@@ -80,7 +81,6 @@ final class PingLoop extends Loop implements SimpleSubscriber, EphemeralSubscrib
         }
 
         EventLoop::queue(function (): void {
-            $this->API->logger("Ping DC {$this->datacenter}");
             try {
                 $this->connection->methodCallAsyncRead('ping_delay_disconnect', ['ping_id' => random_bytes(8), 'disconnect_delay' => $this->timeoutDisconnect]);
             } catch (Throwable $e) {
