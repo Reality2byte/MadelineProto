@@ -293,7 +293,7 @@ final class Connection
                 $this->handler ??= new GenericLoop(function (): void {
                     $this->handleMessages($this->new_incoming);
                     if ($this->ack_queue) {
-                        $this->flush(); // Flush acks
+                        $this->flush(true); // Flush acks
                     }
                 }, "Handler loop");
                 if (!isset($this->pinger) && !$this->shared->auth->isMedia && !$this->shared->auth->isCdn && !$this->isHttp()) {
@@ -570,10 +570,10 @@ final class Connection
     /**
      * Flush pending packets.
      */
-    public function flush(): void
+    public function flush(bool $postpone = false): void
     {
         if (isset($this->writer)) {
-            $this->writer->resume();
+            $this->writer->resume($postpone);
         }
     }
     /**

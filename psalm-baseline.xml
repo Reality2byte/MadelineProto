@@ -2815,7 +2815,6 @@
       <code><![CDATA[PingLoop]]></code>
       <code><![CDATA[PingLoop]]></code>
       <code><![CDATA[PingLoop]]></code>
-      <code><![CDATA[PingLoop]]></code>
     </PropertyNotSetInConstructor>
     <UninitializedProperty>
       <code><![CDATA[$this->shared]]></code>
@@ -2863,6 +2862,9 @@
     </PropertyNotSetInConstructor>
   </file>
   <file src="src/Loop/Connection/WriteLoop.php">
+    <InvalidPropertyAssignmentValue>
+      <code><![CDATA[$this->connection->ack_queue]]></code>
+    </InvalidPropertyAssignmentValue>
     <MixedArgument>
       <code><![CDATA[$aes_iv]]></code>
       <code><![CDATA[$aes_key]]></code>
@@ -3527,6 +3529,8 @@
     </PossiblyNullArgument>
     <PossiblyNullArrayOffset>
       <code><![CDATA[$this->connection->new_outgoing]]></code>
+      <code><![CDATA[$this->connection->new_outgoing]]></code>
+      <code><![CDATA[$this->connection->unencrypted_new_outgoing]]></code>
       <code><![CDATA[$this->connection->unencrypted_new_outgoing]]></code>
     </PossiblyNullArrayOffset>
     <PossiblyNullOperand>
@@ -3673,7 +3677,6 @@
       <code><![CDATA[$args['id']['dc_id']]]></code>
       <code><![CDATA[$args['madelineMsgId']]]></code>
       <code><![CDATA[$args['peer']]]></code>
-      <code><![CDATA[$args['specialMethodType'] ?? null]]></code>
       <code><![CDATA[$args['takeoutId'] ?? null]]></code>
       <code><![CDATA[$args['timeout'] ?? ($this->drop ??= (float) $this->API->getSettings()->getRpc()->getRpcDropTimeout())]]></code>
       <code><![CDATA[$cancellation]]></code>
@@ -3681,6 +3684,7 @@
       <code><![CDATA[$methodInfo['subtype'] ?? null]]></code>
       <code><![CDATA[$methodInfo['type']]]></code>
       <code><![CDATA[$queueId]]></code>
+      <code><![CDATA[$special]]></code>
       <code><![CDATA[$sub]]></code>
       <code><![CDATA[$this->API->parseMode($args)['message']]]></code>
     </MixedArgument>
@@ -3702,6 +3706,7 @@
       <code><![CDATA[$methodInfo]]></code>
       <code><![CDATA[$peer]]></code>
       <code><![CDATA[$queueId]]></code>
+      <code><![CDATA[$special]]></code>
       <code><![CDATA[$sub]]></code>
     </MixedAssignment>
     <MixedMethodCall>
@@ -3824,8 +3829,15 @@
       <code><![CDATA[$this->unencrypted_check_queue ??= new WeakMap]]></code>
     </PropertyTypeCoercion>
     <RedundantCondition>
-      <code><![CDATA[\assert($message instanceof MTProtoOutgoingMessage)]]></code>
+      <code><![CDATA[$this->mainPendingOutgoing]]></code>
+      <code><![CDATA[$this->unencryptedPendingOutgoing]]></code>
+      <code><![CDATA[$this->uninitedPendingOutgoing]]></code>
     </RedundantCondition>
+    <TypeDoesNotContainType>
+      <code><![CDATA[null]]></code>
+      <code><![CDATA[null]]></code>
+      <code><![CDATA[null]]></code>
+    </TypeDoesNotContainType>
   </file>
   <file src="src/MTProtoTools/AuthKeyHandler.php">
     <MixedArgument>

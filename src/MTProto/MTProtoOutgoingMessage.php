@@ -240,7 +240,7 @@ class MTProtoOutgoingMessage extends MTProtoMessage
         } else {
             $this->connection->check_queue[$this] = true;
         }
-        $this->connection->flush();
+        $this->connection->flush(true);
     }
     /**
      * Set reply to message.
