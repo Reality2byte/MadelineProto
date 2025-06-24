@@ -28,6 +28,7 @@ use Amp\TimeoutCancellation;
 use danog\MadelineProto\DataCenterConnection;
 use danog\MadelineProto\MTProto;
 use danog\MadelineProto\MTProto\Container;
+use danog\MadelineProto\MTProto\LinkedList;
 use danog\MadelineProto\MTProto\MTProtoOutgoingMessage;
 use danog\MadelineProto\MTProto\SpecialMethodType;
 use danog\MadelineProto\TL\Exception;
@@ -41,6 +42,8 @@ use function Amp\Future\await;
  * Manages method and object calls.
  *
  *
+ * @property LinkedList $mainPendingOutgoing
+ * @property LinkedList $uninitedPendingOutgoing
  * @property DataCenterConnection $shared
  * @property MTProto $API
  * @internal

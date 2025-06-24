@@ -236,9 +236,11 @@ class MTProtoOutgoingMessage extends MTProtoMessage
 
         \assert($this->msgId !== null);
         if ($this->unencrypted) {
-            $this->connection->unencrypted_check_queue[$this] = true;
+            $this->connection->unencryptedPendingOutgoing->check_queue[$this] = true;
+        } elseif ($this->specialMethodType === SpecialMethodType::UNAUTHED_METHOD) {
+            $this->connection->uninitedPendingOutgoing->check_queue[$this] = true;
         } else {
-            $this->connection->check_queue[$this] = true;
+            $this->connection->mainPendingOutgoing->check_queue[$this] = true;
         }
         $this->connection->flush(true);
     }

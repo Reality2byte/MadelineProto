@@ -142,8 +142,8 @@ final class WriteLoop extends Loop implements Subscriber, EphemeralSubscriber
     }
     public function unencryptedWriteLoop(): void
     {
-        if (0 !== ($queue = $this->connection->unencrypted_check_queue)->count()) {
-            $this->connection->unencrypted_check_queue = new WeakMap;
+        if (0 !== ($queue = $this->queue->check_queue)->count()) {
+            $this->queue->check_queue = new WeakMap;
             foreach ($queue as $msg => $_) {
                 // TODO: wait for actual re-queueing
                 $this->connection->methodRecall($msg);
@@ -175,11 +175,11 @@ final class WriteLoop extends Loop implements Subscriber, EphemeralSubscriber
             (
                 !$this->queue->isEmpty()
                 || $this->connection->ack_queue
-                || $this->connection->check_queue->count()
+                || $this->queue->check_queue->count()
             )
         ) {
-            if (0 !== ($check = $this->connection->check_queue)->count()) {
-                $this->connection->check_queue = new WeakMap;
+            if (0 !== ($check = $this->queue->check_queue)->count()) {
+                $this->queue->check_queue = new WeakMap;
                 $deferred = new DeferredFuture();
                 $deferred->getFuture()->catch(function (\Throwable $e): void {
                     $this->API->logger("Got exception in check loop for DC {$this->datacenter}");

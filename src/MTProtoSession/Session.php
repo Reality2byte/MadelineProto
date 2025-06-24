@@ -30,7 +30,6 @@ use danog\MadelineProto\MTProto\MTProtoIncomingMessage;
 use danog\MadelineProto\MTProto\MTProtoOutgoingMessage;
 use danog\MadelineProto\Tools;
 use SplQueue;
-use WeakMap;
 
 /**
  * Manages MTProto session-specific data.
@@ -109,18 +108,6 @@ trait Session
      * @var list<int>
      */
     public array $ack_queue = [];
-    /**
-     * Check queue.
-     *
-     * @var WeakMap<MTProtoOutgoingMessage, true>
-     */
-    public WeakMap $check_queue;
-    /**
-     * Check queue.
-     *
-     * @var WeakMap<MTProtoOutgoingMessage, true>
-     */
-    public WeakMap $unencrypted_check_queue;
     /**
      * Message ID handler.
      *
@@ -205,8 +192,6 @@ trait Session
         $this->mainPendingOutgoing ??= new LinkedList;
         $this->unencryptedPendingOutgoing ??= new LinkedList;
         $this->uninitedPendingOutgoing ??= new LinkedList;
-        $this->check_queue ??= new WeakMap;
-        $this->unencrypted_check_queue ??= new WeakMap;
         if ($this->session_id === null) {
             $this->resetSession("creating initial session");
         }

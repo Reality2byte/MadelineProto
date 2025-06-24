@@ -72,8 +72,13 @@ final class MTProtoIncomingMessage extends MTProtoMessage
      * @param array   $content       Content
      * @param boolean $fromContainer Whether this message was in a container
      */
-    public function __construct(private readonly Connection $connection, array $content, int $msgId, public readonly bool $unencrypted, public readonly bool $fromContainer = false)
-    {
+    public function __construct(
+        private readonly Connection $connection,
+        array $content,
+        int $msgId,
+        public readonly bool $unencrypted,
+        public readonly bool $fromContainer,
+    ) {
         $this->content = $content;
         $this->msgId = $msgId;
 

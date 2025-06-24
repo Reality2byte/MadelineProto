@@ -3455,6 +3455,9 @@
     <InvalidReturnType>
       <code><![CDATA[?MTProtoOutgoingMessage]]></code>
     </InvalidReturnType>
+    <PropertyTypeCoercion>
+      <code><![CDATA[new WeakMap()]]></code>
+    </PropertyTypeCoercion>
   </file>
   <file src="src/MTProto/MTProtoIncomingMessage.php">
     <InvalidPropertyAssignmentValue>
@@ -3812,30 +3815,32 @@
     </PossiblyInvalidArgument>
   </file>
   <file src="src/MTProtoSession/Session.php">
+    <DocblockTypeContradiction>
+      <code><![CDATA[new LinkedList]]></code>
+      <code><![CDATA[new LinkedList]]></code>
+      <code><![CDATA[null]]></code>
+      <code><![CDATA[null]]></code>
+    </DocblockTypeContradiction>
     <MissingConstructor>
-      <code><![CDATA[$check_queue]]></code>
       <code><![CDATA[$mainPendingOutgoing]]></code>
       <code><![CDATA[$msgIdHandler]]></code>
       <code><![CDATA[$new_incoming]]></code>
       <code><![CDATA[$unencryptedPendingOutgoing]]></code>
-      <code><![CDATA[$unencrypted_check_queue]]></code>
       <code><![CDATA[$uninitedPendingOutgoing]]></code>
     </MissingConstructor>
     <MixedPropertyTypeCoercion>
       <code><![CDATA[$q]]></code>
     </MixedPropertyTypeCoercion>
-    <PropertyTypeCoercion>
-      <code><![CDATA[$this->check_queue ??= new WeakMap]]></code>
-      <code><![CDATA[$this->unencrypted_check_queue ??= new WeakMap]]></code>
-    </PropertyTypeCoercion>
     <RedundantCondition>
-      <code><![CDATA[$this->mainPendingOutgoing]]></code>
       <code><![CDATA[$this->unencryptedPendingOutgoing]]></code>
-      <code><![CDATA[$this->uninitedPendingOutgoing]]></code>
     </RedundantCondition>
+    <RedundantConditionGivenDocblockType>
+      <code><![CDATA[$this->mainPendingOutgoing]]></code>
+      <code><![CDATA[$this->mainPendingOutgoing]]></code>
+      <code><![CDATA[$this->uninitedPendingOutgoing]]></code>
+      <code><![CDATA[$this->uninitedPendingOutgoing]]></code>
+    </RedundantConditionGivenDocblockType>
     <TypeDoesNotContainType>
-      <code><![CDATA[null]]></code>
-      <code><![CDATA[null]]></code>
       <code><![CDATA[null]]></code>
     </TypeDoesNotContainType>
   </file>
