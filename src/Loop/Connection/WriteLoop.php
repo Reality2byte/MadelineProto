@@ -178,6 +178,7 @@ final class WriteLoop extends Loop implements Subscriber, EphemeralSubscriber
                 || $this->queue->check_queue->count()
             )
         ) {
+            $this->API->logger("Resuming write loop in DC $this->datacenter", Logger::ULTRA_VERBOSE);
             if (0 !== ($check = $this->queue->check_queue)->count()) {
                 $this->queue->check_queue = new WeakMap;
                 $deferred = new DeferredFuture();
@@ -202,60 +203,62 @@ final class WriteLoop extends Loop implements Subscriber, EphemeralSubscriber
                     $list .= $msg.', ';
                     $arr[] = $msg;
                 }
-                $this->API->logger("Still missing {$list} on DC {$this->datacenter}, sending state request", Logger::ERROR);
-                $this->connection->objectCallAsync('msgs_state_req', ['msg_ids' => $msgIds, 'cancellation' => new \Amp\TimeoutCancellation(self::LONG_POLL_TIMEOUT)], $deferred);
-                $deferred->getFuture()->map(function (array|\Closure $result) use ($arr): void {
-                    try {
-                        if (\is_callable($result)) {
-                            throw $result();
-                        }
-                        foreach (str_split($result['info']) as $key => $chr) {
-                            $message = $arr[$key];
-                            if ($message->hasReply()) {
-                                $this->API->logger("Already got response for and forgot about message $message");
-                                $this->connection->ack_queue[] = $message->getMsgId();
-                                continue;
+                if ($msgIds) {
+                    $this->API->logger("Still missing {$list} on DC {$this->datacenter}, sending state request", Logger::ERROR);
+                    $this->connection->objectCallAsync('msgs_state_req', ['msg_ids' => $msgIds, 'cancellation' => new \Amp\TimeoutCancellation(self::LONG_POLL_TIMEOUT)], $deferred);
+                    $deferred->getFuture()->map(function (array|\Closure $result) use ($arr): void {
+                        try {
+                            if (\is_callable($result)) {
+                                throw $result();
                             }
-                            $chr = \ord($chr);
-                            switch ($chr & 7) {
-                                case 0:
-                                    $this->API->logger("Wrong message status 0 for $message", Logger::FATAL_ERROR);
-                                    break;
-                                case 1:
-                                case 2:
-                                case 3:
-                                    if ($message->constructor === 'msgs_state_req') {
-                                        $message->reply(null);
+                            foreach (str_split($result['info']) as $key => $chr) {
+                                $message = $arr[$key];
+                                if ($message->hasReply()) {
+                                    $this->API->logger("Already got response for and forgot about message $message");
+                                    $this->connection->ack_queue[] = $message->getMsgId();
+                                    continue;
+                                }
+                                $chr = \ord($chr);
+                                switch ($chr & 7) {
+                                    case 0:
+                                        $this->API->logger("Wrong message status 0 for $message", Logger::FATAL_ERROR);
                                         break;
-                                    }
-                                    $this->API->logger("Message $message not received by server, resending...", Logger::ERROR);
-                                    $this->connection->methodRecall($message);
-                                    break;
-                                case 4:
-                                    if ($chr & 128) {
-                                        $this->API->logger("Message $message received by server and was already sent.", Logger::ERROR);
-                                    } elseif ($chr & 64) {
-                                        $this->API->logger("Message $message received by server and was already processed.", Logger::ERROR);
-                                    } elseif ($chr & 32) {
-                                        if ($message->getSent() + $this->resendTimeout < hrtime(true)) {
-                                            if (!$message->cancellation?->isRequested()) {
-                                                $this->API->logger("Message $message received by server and is being processed for way too long, resending request...", Logger::ERROR);
-                                                $this->connection->methodRecall($message);
+                                    case 1:
+                                    case 2:
+                                    case 3:
+                                        if ($message->constructor === 'msgs_state_req') {
+                                            $message->reply(null);
+                                            break;
+                                        }
+                                        $this->API->logger("Message $message not received by server, resending...", Logger::ERROR);
+                                        $this->connection->methodRecall($message);
+                                        break;
+                                    case 4:
+                                        if ($chr & 128) {
+                                            $this->API->logger("Message $message received by server and was already sent.", Logger::ERROR);
+                                        } elseif ($chr & 64) {
+                                            $this->API->logger("Message $message received by server and was already processed.", Logger::ERROR);
+                                        } elseif ($chr & 32) {
+                                            if ($message->getSent() + $this->resendTimeout < hrtime(true)) {
+                                                if (!$message->cancellation?->isRequested()) {
+                                                    $this->API->logger("Message $message received by server and is being processed for way too long, resending request...", Logger::ERROR);
+                                                    $this->connection->methodRecall($message);
+                                                }
+                                            } else {
+                                                $this->API->logger("Message $message received by server and is being processed, waiting...", Logger::ERROR);
                                             }
                                         } else {
-                                            $this->API->logger("Message $message received by server and is being processed, waiting...", Logger::ERROR);
+                                            $this->API->logger("Message $message received by server, waiting...", Logger::ERROR);
                                         }
-                                    } else {
-                                        $this->API->logger("Message $message received by server, waiting...", Logger::ERROR);
-                                    }
-                                    break;
+                                        break;
+                                }
                             }
+                        } catch (\Throwable $e) {
+                            $this->API->logger("Got exception in check loop for DC {$this->datacenter}");
+                            $this->API->logger((string) $e);
                         }
-                    } catch (\Throwable $e) {
-                        $this->API->logger("Got exception in check loop for DC {$this->datacenter}");
-                        $this->API->logger((string) $e);
-                    }
-                });
+                    });
+                }
             }
 
             $messages = [];
@@ -382,7 +385,8 @@ final class WriteLoop extends Loop implements Subscriber, EphemeralSubscriber
                 $msg .= $this->queue->isEmpty() ? "messages: true, " : "messages: false, ";
                 $msg .= $this->connection->ack_queue ? "ack: true, " : "ack: false, ";
                 $msg .= $this->queue->check_queue->count() ? "queue: true" : "check queue: false";
-                throw new AssertionError($msg);
+                $this->API->logger($msg, Logger::ULTRA_VERBOSE);
+                continue;
             }
             unset($MTmessages);
 
