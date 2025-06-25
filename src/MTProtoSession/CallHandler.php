@@ -77,6 +77,7 @@ trait CallHandler
             $request->cancellation?->subscribe(static fn () => EventLoop::cancel($id));
             $defer = $d->getFuture();
         }
+        $request->unlink();
         if ($defer) {
             $defer->finally(
                 fn () => $this->methodRecall($request, $forceDatacenter)
@@ -88,7 +89,6 @@ trait CallHandler
             /** @var MTProtoOutgoingMessage */
             $request->setMsgId(null);
             $request->setSeqNo(null);
-            $request->unlink();
         }
         if ($datacenter === $this->datacenter) {
             EventLoop::queue($this->sendMessage(...), $request);

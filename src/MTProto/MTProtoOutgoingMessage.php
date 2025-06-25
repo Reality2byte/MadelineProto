@@ -189,12 +189,14 @@ class MTProtoOutgoingMessage extends MTProtoMessage
     /**
      * Signal that the message was sent.
      */
-    public function sent(): void
+    public function sent(bool $pending = true): void
     {
-        if ($this->unencrypted) {
-            $this->connection->unencrypted_new_outgoing[$this->getMsgId()] = $this;
-        } else {
-            $this->connection->new_outgoing[$this->getMsgId()] = $this;
+        if ($pending) {
+            if ($this->unencrypted) {
+                $this->connection->unencrypted_new_outgoing[$this->getMsgId()] = $this;
+            } else {
+                $this->connection->new_outgoing[$this->getMsgId()] = $this;
+            }
         }
         if ($this->sent === null && $this->isMethod) {
             $this->connection->inFlightGauge?->inc([
@@ -206,10 +208,13 @@ class MTProtoOutgoingMessage extends MTProtoMessage
             $this->unlink();
         }
         $this->sent = hrtime(true);
-        if ($this->contentRelated) {
+        if ($this->contentRelated && $pending) {
+            $self = \WeakReference::create($this);
             $this->checkTimer = EventLoop::delay(
                 $this->connection->API->getSettings()->getConnection()->getTimeout(),
-                $this->check(...)
+                static function () use ($self): void {
+                    $self->get()?->check();
+                }
             );
         }
         if (isset($this->sendDeferred)) {
@@ -234,6 +239,10 @@ class MTProtoOutgoingMessage extends MTProtoMessage
             }
             $this->connection->pendingOutgoingGauge?->dec();
         }
+        if ($this->checkTimer !== null) {
+            EventLoop::cancel($this->checkTimer);
+            $this->checkTimer = null;
+        }
     }
     private function check(): void
     {
@@ -243,9 +252,12 @@ class MTProtoOutgoingMessage extends MTProtoMessage
         $shared = $this->connection->getShared();
         $settings = $shared->getSettings();
         $timeout = $settings->getTimeout();
+        $self = \WeakReference::create($this);
         $this->checkTimer = EventLoop::delay(
             $timeout,
-            $this->check(...)
+            static function () use ($self): void {
+                $self->get()?->check();
+            }
         );
 
         \assert($this->msgId !== null);
@@ -270,9 +282,7 @@ class MTProtoOutgoingMessage extends MTProtoMessage
             // It can happen, no big deal
             return;
         }
-        if (!($this->state & self::STATE_SENT)) {
-            $this->sent();
-        }
+        $this->sent(false);
         if ($this->checkTimer !== null) {
             EventLoop::cancel($this->checkTimer);
             $this->checkTimer = null;
