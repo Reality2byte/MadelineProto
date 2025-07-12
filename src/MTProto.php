@@ -427,6 +427,30 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
         return self::$references[$session];
     }
 
+    /** @internal */
+    public function deleteSession(): void
+    {
+        $this->getDbAutoProperties();
+        /** @psalm-suppress TypeDoesNotContainType */
+        if (!isset($this->sessionDb) || $this->sessionDb instanceof MemoryArray) {
+            return;
+        }
+
+        $db = [async($this->sessionDb->clear(...))];
+        if ($this->referenceDatabase) {
+            $db []= async($this->referenceDatabase->clear(...));
+        }
+        $db []= async($this->minDatabase->clear(...));
+        $db []= async($this->peerDatabase->clearAll(...));
+        foreach ($this->properties as $property) {
+            $db []= async($property->clear(...));
+        }
+        if (isset($this->event_handler_instance)) {
+            $db []= async($this->event_handler_instance->internalClearDbProperties(...));
+        }
+        await($db);
+    }
+
     /**
      * Serialize session, returning object to serialize to db.
      *
@@ -497,9 +521,6 @@ final class MTProto implements TLCallback, LoggerGetter, SettingsGetter
         if (self::$references) {
             Logger::log('Prompting final serialization (SHUTDOWN)...');
             foreach (self::$references as $instance) {
-                if ($instance->loginState->getState()->state === API::LOGGED_OUT) {
-                    continue;
-                }
                 $instance->wrapper->serialize();
             }
             Logger::log('Done final serialization (SHUTDOWN)!');

@@ -152,6 +152,12 @@ final class PeerDatabase implements TLCallback
         });
     }
 
+    public function clearAll(): void
+    {
+        $this->db->clear();
+        $this->fullDb->clear();
+    }
+
     public function getFull(int $id): ?array
     {
         $result = $this->fullDb[$id];

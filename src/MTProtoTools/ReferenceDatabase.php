@@ -119,6 +119,10 @@ final class ReferenceDatabase implements TLCallback
             EventLoop::queue($this->flush(...), $key);
         }
     }
+    public function clear(): void
+    {
+        $this->db->clear();
+    }
     private function flush(string $location): void
     {
         if (!isset($this->pendingDb[$location])) {

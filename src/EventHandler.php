@@ -40,9 +40,11 @@ use ReflectionMethod;
 use Revolt\EventLoop;
 use Webmozart\Assert\Assert;
 
+use function Amp\async;
 use function Amp\File\isDirectory;
 use function Amp\File\isFile;
 use function Amp\File\listFiles;
+use function Amp\Future\await;
 
 /**
  * Event handler.
@@ -111,6 +113,17 @@ abstract class EventHandler extends AbstractAPI
     final public function internalSaveDbProperties(): void
     {
         $this->privateInternalSaveDbProperties();
+    }
+    /**
+     * @internal Do not use manually.
+     */
+    final public function internalClearDbProperties(): void
+    {
+        $f = [];
+        foreach ($this->properties as $property) {
+            $f []= async($property->clear(...));
+        }
+        await($f);
     }
 
     private static bool $includingPlugins = false;

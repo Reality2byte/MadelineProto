@@ -106,6 +106,10 @@ final class MinDatabase implements TLCallback
             }
         });
     }
+    public function clear(): void
+    {
+        $this->db->clear();
+    }
     #[\Override]
     public function getMethodAfterResponseDeserializationCallbacks(): array
     {

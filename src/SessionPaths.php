@@ -131,12 +131,14 @@ final class SessionPaths
     {
         if (file_exists($this->sessionDirectoryPath)) {
             foreach (scandir($this->sessionDirectoryPath) as $f) {
-                if ($f === '.' || $f === '..') {
+                if ($f === '.' || $f === '..' || !str_ends_with($f, '.php')) {
                     continue;
                 }
-                unlink($this->sessionDirectoryPath.DIRECTORY_SEPARATOR.$f);
+                try {
+                    unlink($this->sessionDirectoryPath.DIRECTORY_SEPARATOR.$f);
+                } catch (\Throwable) {
+                }
             }
-            rmdir($this->sessionDirectoryPath);
         }
     }
     /**
