@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 use danog\MadelineProto\Settings\TLSchema;
 use danog\MadelineProto\TL\TL;
@@ -13,14 +13,16 @@ $TL->init(new TLSchema);
 $final = [];
 $locations = [];
 
-final class TLContext {
+final class TLContext
+{
     public function __construct(
         private readonly TLInterface $tl,
         private readonly string $position,
     ) {
     }
 
-    public function getTypeAtPosition(ExtractFromHereOp|ExtractFromRootOp $path): string {
+    public function getTypeAtPosition(ExtractFromHereOp|ExtractFromRootOp $path): string
+    {
         if ($path instanceof ExtractFromHereOp) {
             Assert::eq($this->position, $path->path[0], 'Path position does not match current position');
         }
@@ -50,7 +52,8 @@ final class TLContext {
 
         return $type;
     }
-    private function getConstructorsOfType(string $type): array {
+    private function getConstructorsOfType(string $type): array
+    {
         $constructors = [];
         foreach ($this->tl->getConstructors()->by_id as $constructor) {
             if ($constructor['type'] === $type) {
@@ -67,38 +70,48 @@ final class TLContext {
     }
 }
 
-interface Op {
+interface Op
+{
     public function build(TLContext $tl): array;
 }
 
-final class CopyMethodCallOp implements Op {
-    public function build(TLContext $tl): array {
+final class CopyMethodCallOp implements Op
+{
+    public function build(TLContext $tl): array
+    {
         return ['op' => 'copyMethodCall'];
     }
 }
 
-final class ThemeFormatOp implements Op {
-    public function __construct() {
+final class ThemeFormatOp implements Op
+{
+    public function __construct()
+    {
     }
 
-    public function build(TLContext $tl): array {
+    public function build(TLContext $tl): array
+    {
         return [
             'op' => 'themeFormat',
         ];
     }
 }
-final class ExtractFromHereOp implements Op {
+final class ExtractFromHereOp implements Op
+{
     /** @var string[] */
     public readonly array $path;
-    public function __construct(string ...$path) {
+    public function __construct(string ...$path)
+    {
         $this->path = $path;
     }
 
-    public function extend(string ...$path): self {
+    public function extend(string ...$path): self
+    {
         return new self(...$this->path, ...$path);
     }
 
-    public function build(TLContext $tl): array {
+    public function build(TLContext $tl): array
+    {
         return [
             'op' => 'extractFromHere',
             'path' => $this->path,
@@ -106,18 +119,22 @@ final class ExtractFromHereOp implements Op {
     }
 }
 
-final class ExtractFromRootOp implements Op {
+final class ExtractFromRootOp implements Op
+{
     /** @var string[] */
     public readonly array $path;
-    public function __construct(string ...$path) {
+    public function __construct(string ...$path)
+    {
         $this->path = $path;
     }
 
-    public function extend(string ...$path): self {
+    public function extend(string ...$path): self
+    {
         return new self(...$this->path, ...$path);
     }
 
-    public function build(TLContext $tl): array {
+    public function build(TLContext $tl): array
+    {
         return [
             'op' => 'extractFromRoot',
             'path' => $this->path,
@@ -125,11 +142,14 @@ final class ExtractFromRootOp implements Op {
     }
 }
 
-final class GetInputPeerOp implements Op {
-    public function __construct(private readonly ExtractFromHereOp|ExtractFromRootOp $path) {
+final class GetInputPeerOp implements Op
+{
+    public function __construct(private readonly ExtractFromHereOp|ExtractFromRootOp $path)
+    {
     }
 
-    public function build(TLContext $tl): array {
+    public function build(TLContext $tl): array
+    {
         $type = $tl->getTypeAtPosition($this->path);
         if ($type === 'InputPeer') {
             return [
@@ -144,11 +164,14 @@ final class GetInputPeerOp implements Op {
         ];
     }
 }
-final class GetInputUserOp implements Op {
-    public function __construct(private readonly ExtractFromHereOp|ExtractFromRootOp $path) {
+final class GetInputUserOp implements Op
+{
+    public function __construct(private readonly ExtractFromHereOp|ExtractFromRootOp $path)
+    {
     }
 
-    public function build(TLContext $tl): array {
+    public function build(TLContext $tl): array
+    {
         $type = $tl->getTypeAtPosition($this->path);
         if ($type === 'InputUser') {
             return [
@@ -169,11 +192,14 @@ final class GetInputUserOp implements Op {
         ];
     }
 }
-final class GetInputChannelOp implements Op {
-    public function __construct(private readonly ExtractFromHereOp|ExtractFromRootOp $path) {
+final class GetInputChannelOp implements Op
+{
+    public function __construct(private readonly ExtractFromHereOp|ExtractFromRootOp $path)
+    {
     }
 
-    public function build(TLContext $tl): array {
+    public function build(TLContext $tl): array
+    {
         $type = $tl->getTypeAtPosition($this->path);
         if ($type === 'InputChannel') {
             return [
@@ -195,15 +221,17 @@ final class GetInputChannelOp implements Op {
     }
 }
 
-
-final class ArrayOp implements Op {
+final class ArrayOp implements Op
+{
     /** @var Op[] */
     private readonly array $values;
-    public function __construct(Op ...$values) {
+    public function __construct(Op ...$values)
+    {
         $this->values = $values;
     }
 
-    public function build(TLContext $tl): array {
+    public function build(TLContext $tl): array
+    {
         $arr = [];
         foreach ($this->value as $key => $value) {
             $arr[$key] = $value->build($tl);
@@ -215,11 +243,14 @@ final class ArrayOp implements Op {
     }
 }
 
-final class LiteralOp implements Op {
-    public function __construct(private readonly mixed $value) {
+final class LiteralOp implements Op
+{
+    public function __construct(private readonly mixed $value)
+    {
     }
 
-    public function build(TLContext $tl): array {
+    public function build(TLContext $tl): array
+    {
         return [
             'op' => 'literal',
             'value' => $this->value,
@@ -227,7 +258,8 @@ final class LiteralOp implements Op {
     }
 }
 
-final class ConditionalEqOp implements Op {
+final class ConditionalEqOp implements Op
+{
     public function __construct(
         private readonly Op $subject,
         private readonly Op $eq,
@@ -236,7 +268,8 @@ final class ConditionalEqOp implements Op {
     ) {
     }
 
-    public function build(TLContext $tl): array {
+    public function build(TLContext $tl): array
+    {
         return [
             'op' => 'conditional_eq',
             'subject' => $this->subject->build($tl),
@@ -247,7 +280,8 @@ final class ConditionalEqOp implements Op {
     }
 }
 
-final class CallOp implements Op {
+final class CallOp implements Op
+{
     /** @param Op[] $args */
     public function __construct(
         private readonly string $method,
@@ -255,7 +289,8 @@ final class CallOp implements Op {
     ) {
     }
 
-    public static function simple(string $method, string $constructor, array $args): self {
+    public static function simple(string $method, string $constructor, array $args): self
+    {
         $final = [];
         foreach ($args as $from => $to) {
             if (!$to instanceof Op) {
@@ -266,7 +301,8 @@ final class CallOp implements Op {
         return new CallOp($method, $final);
     }
 
-    public function build(TLContext $tl): array {
+    public function build(TLContext $tl): array
+    {
         $final = [];
         foreach ($this->args as $from => $to) {
             $final[$from] = $to->build($tl);
@@ -278,7 +314,8 @@ final class CallOp implements Op {
         ];
     }
 }
-final class ConstructorOp implements Op {
+final class ConstructorOp implements Op
+{
     /** @param Op[] $args */
     public function __construct(
         private readonly string $constructor,
@@ -286,7 +323,8 @@ final class ConstructorOp implements Op {
     ) {
     }
 
-    public function build(TLContext $tl): array {
+    public function build(TLContext $tl): array
+    {
         $final = [];
         foreach ($this->args as $from => $to) {
             $final[$from] = $to->build($tl);
@@ -299,7 +337,7 @@ final class ConstructorOp implements Op {
     }
 }
 
-$recurse = static function (string $type, array $stack = []) use ($TL, &$recurse, &$final, &$locations) {
+$recurse = static function (string $type, array $stack = []) use ($TL, &$recurse, &$final, &$locations): void {
     if ($type === 'Message') {
         $locations[$type] = new ConditionalEqOp(
             new ExtractFromHereOp($type, 'peer_id', '_'),
@@ -334,7 +372,7 @@ $recurse = static function (string $type, array $stack = []) use ($TL, &$recurse
     if ($type === 'StoryItem') {
         $locations['storyItem'] = new CallOp('stories.getStoriesByID', [
             'id' => new ArrayOp(new ExtractFromHereOp('storyItem', 'id')),
-            'peer' => new GetInputPeerOp(new ExtractFromHereOp('storyItem', 'peer_id'))
+            'peer' => new GetInputPeerOp(new ExtractFromHereOp('storyItem', 'peer_id')),
         ]);
         return;
     }
@@ -383,7 +421,7 @@ $recurse = static function (string $type, array $stack = []) use ($TL, &$recurse
     }
     if ($type === 'ChatFull') {
         $locations['chatFull'] = new CallOp(
-            'messages.getFullChat',     
+            'messages.getFullChat',
             [
                 'chat_id' => new ExtractFromHereOp('chatFull', 'id'),
             ]
@@ -533,11 +571,11 @@ $recurse = static function (string $type, array $stack = []) use ($TL, &$recurse
         return;
     }
     if (in_array($type, [
-            // Extract from document attributes
-            'messages.FoundStickers',
-            'messages.Stickers',
-            'messages.RecentStickers',
-            'messages.FavedStickers',
+        // Extract from document attributes
+        'messages.FoundStickers',
+        'messages.Stickers',
+        'messages.RecentStickers',
+        'messages.FavedStickers',
     ], true)) {
         // TODO!
         return;
@@ -566,7 +604,7 @@ $recurse = static function (string $type, array $stack = []) use ($TL, &$recurse
                 $recurse($constructor['type'], $stack);
                 $found = true;
             }
-            if (isset($param['subtype']) 
+            if (isset($param['subtype'])
                 && $param['subtype'] === $type
                 && !in_array($name, $stack, true)
             ) {
