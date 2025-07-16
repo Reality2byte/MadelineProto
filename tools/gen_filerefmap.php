@@ -258,24 +258,20 @@ final class LiteralOp implements Op
     }
 }
 
-final class ConditionalEqOp implements Op
+final class GetMessageOp implements Op
 {
     public function __construct(
-        private readonly Op $subject,
-        private readonly Op $eq,
-        private readonly Op $if,
-        private readonly Op $else
+        private readonly Op $peer,
+        private readonly Op $id,
     ) {
     }
 
     public function build(TLContext $tl): array
     {
         return [
-            'op' => 'conditional_eq',
-            'subject' => $this->subject->build($tl),
-            'eq' => $this->eq->build($tl),
-            'if' => $this->if->build($tl),
-            'else' => $this->else->build($tl),
+            'op' => 'get_message',
+            'peer' => $this->peer->build($tl),
+            'id' => $this->id->build($tl),
         ];
     }
 }
@@ -339,22 +335,13 @@ final class ConstructorOp implements Op
 
 $recurse = static function (string $type, array $stack = []) use ($TL, &$recurse, &$final, &$locations): void {
     if ($type === 'Message') {
-        foreach (TLContext::getConstructorsOfType($TL, 'Message') as $constructor => $_) {
+        foreach (TLContext::getConstructorsOfType($TL, $type) as $constructor => $_) {
             if ($constructor === 'messageEmpty') {
                 continue;
             }
-            $locations[$constructor] = new ConditionalEqOp(
-                new ExtractFromHereOp($constructor, 'peer_id', '_'),
-                new LiteralOp('peerUser'),
-                new CallOp('messages.getMessages', ['id' => new ArrayOp(
-                    new ExtractFromHereOp($constructor, 'msg_id'),
-                )]),
-                new CallOp('channels.getMessages', [
-                    'id' => new ArrayOp(
-                        new ExtractFromHereOp($constructor, 'msg_id'),
-                    ),
-                    'channel' => new GetInputPeerOp(new ExtractFromHereOp($constructor, 'peer_id')),
-                ]),
+            $locations[$constructor] = new GetMessageOp(
+                new ExtractFromHereOp($constructor, 'peer_id'),
+                new ExtractFromHereOp($constructor, 'msg_id'),
             );
         }
         return;
@@ -390,8 +377,8 @@ $recurse = static function (string $type, array $stack = []) use ($TL, &$recurse
             'channels.getAdminLog',
             [
                 'channel' => new GetInputChannelOp(new ExtractFromRootOp('channels.getAdminLog', 'channel')),
-                'max_id' => new ExtractFromHereOp($type, 'id'),
-                'min_id' => new ExtractFromHereOp($type, 'id'),
+                'max_id' => new ExtractFromHereOp('channelAdminLogEvent', 'id'),
+                'min_id' => new ExtractFromHereOp('channelAdminLogEvent', 'id'),
                 'limit' => new LiteralOp(1),
             ]
         );
