@@ -17,6 +17,7 @@ final readonly class TLContext
     public function __construct(
         public readonly TLInterface $tl,
         public readonly string $position,
+        private readonly bool $normalized = false,
     ) {
     }
 
@@ -63,13 +64,14 @@ final readonly class TLContext
         $path = $_path->path;
         $idx = 0;
         $type = null;
+        $realType = null;
         $hadFlag = false;
         do {
-            if ($type !== null
-                && !isset(self::getConstructorsOfType($this->tl, $type, true, true)[$path[$idx]])
-                && !isset(self::getConstructorsOfType($this->tl, $type, false, true)[$path[$idx]])
+            if ($realType !== null
+                && !isset(self::getConstructorsOfType($this->tl, $realType, true, true)[$path[$idx]])
+                && !isset(self::getConstructorsOfType($this->tl, $realType, false, true)[$path[$idx]])
             ) {
-                throw new AssertionError("{$path[$idx]} is a constructor of type $type, path: " . json_encode($path));
+                throw new AssertionError("{$path[$idx]} is NOT a constructor of type $type, path: " . json_encode($path));
             }
             $constructor = $this->tl->getConstructors()->findByPredicate($path[$idx]);
             if ($constructor === false) {
@@ -79,17 +81,26 @@ final readonly class TLContext
 
             $idx++;
             $type = null;
+            $realType = null;
+            if ($path[$idx] === '') {
+                Assert::true(isset($constructor['method']), "Expected method at position $idx in path: " . json_encode($path));
+                $type = $constructor['type'];
+                $realType = $constructor['subtype'] ?? $constructor['type'];
+                continue;
+            }
             $n = $constructor['predicate'] ?? $constructor['method'];
             foreach ($constructor['params'] as $param) {
                 if ($param['name'] === $path[$idx]) {
                     $hadFlag = $hadFlag || isset($param['pow']);
                     $type = isset($param['subtype']) ? "Vector<{$param['subtype']}>" : $param['type'];
+                    $realType = $param['subtype'] ?? $param['type'];
                     break;
                 }
             }
             Assert::notNull($type, "Parameter {$path[$idx]} not found in constructor or method $n: " . json_encode($path));
+            Assert::notNull($realType, "Parameter {$path[$idx]} not found in constructor or method $n: " . json_encode($path));
         } while (++$idx < count($path));
-        if ($_path->isFlag != $hadFlag) {
+        if ($_path->isFlag != $hadFlag && (!$this->normalized || !$hadFlag)) {
             $hadFlag = $hadFlag ? 'flag' : 'no flag';
             $expectedFlag = $_path->isFlag ? 'flag' : 'no flag';
             throw new AssertionError("Expected $expectedFlag; got $hadFlag at " . json_encode($path));
@@ -1006,10 +1017,11 @@ $recurse = static function (Closure $onStackEnd, string $type, array &$stack, ar
         return;
     }
 
-    $pos = count($stack);
+    $posName = count($stack);
+    $pos = count($stack)+1;
     $found = false;
     foreach ([...$TL->getConstructors()->by_id, ...$TL->getMethods()->by_id] as $constructor) {
-        $name = $constructor['predicate'] ?? $constructor['method'];
+        $predicate = $constructor['predicate'] ?? $constructor['method'];
         $t = $constructor['type'];
         if (isset($stackTypes[$t])) {
             continue;
@@ -1020,22 +1032,27 @@ $recurse = static function (Closure $onStackEnd, string $type, array &$stack, ar
                 $param['type'] === $type ||
                 ($param['subtype'] ?? null) === $type
             )) {
-                $stack[$pos] = $name;
+                $stack[$posName] = $param['name'];
+                $stack[$pos] = $predicate;
                 $recurse($onStackEnd, $t, $stack, $stackTypes);
                 $found = true;
                 unset($stack[$pos]);
+                unset($stack[$posName]);
             }
         }
         unset($stackTypes[$t]);
     }
+    unset($stack[$pos]);
+    unset($stack[$posName]);
     if (!$found) {
         foreach (TLContext::getConstructorsOfType($TL, $type, true, true) as $method => $data) {
+            $stack[$posName] = '';
             $stack[$pos] = $method;
             $onStackEnd($stack);
         }
+        unset($stack[$posName]);
         unset($stack[$pos]);
     } elseif ($type === 'Update') {
-        unset($stack[$pos]);
         $onStackEnd($stack);
     }
 
@@ -1094,8 +1111,7 @@ foreach ($fileRefs as $type => $constructor) {
     $stackTypes = [$type => true];
     $recurse(
         static function (array $stack) use ($locations, $TL, &$normalizedLocations): void {
-            if (end($stack) === 'messages.getWebPagePreview'
-                || array_intersect(
+            if (array_intersect(
                     [
                         'updateShortSentMessage',
                         'updateShortMessage',
@@ -1108,9 +1124,13 @@ foreach ($fileRefs as $type => $constructor) {
             }
             $slice = [];
             $had = false;
-            $top = $stack[0];
+            $top = end($stack);
             for ($x = count($stack)-1; $x >= 0; $x--) {
                 $constructor = $stack[$x];
+                if ($x % 2) {
+                    $slice[] = $constructor;
+                    continue; // Skip parameter names
+                }
                 if (isset($locations[$constructor])) {
                     foreach ($locations[$constructor] as $op) {
                         $normalized = $op->normalize($slice);
@@ -1118,7 +1138,7 @@ foreach ($fileRefs as $type => $constructor) {
                             continue;
                         }
                         $had = true;
-                        $normalizedLocations[$top][] = $normalized;//->build(new TLContext($TL, $constructor));
+                        $normalizedLocations[$top][] = $normalized->build(new TLContext($TL, $top, true));
                     }
                 }
                 $slice[] = $constructor;
