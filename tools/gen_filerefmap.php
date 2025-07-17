@@ -17,7 +17,7 @@ final class TLContext
 {
     public function __construct(
         public readonly TLInterface $tl,
-        private readonly string $position,
+        public readonly string $position,
     ) {
     }
 
@@ -176,12 +176,20 @@ final class ExtractFromHereOp implements SimpleExtractorOp
         /** @var string[] */
         public readonly array $path,
         public readonly bool $isFlag = false,
+        public readonly ?Op $ifEmptyFlag = null,
     ) {
+        if ($ifEmptyFlag !== null) {
+            Assert::true($isFlag);
+        }
     }
 
     public function getType(TLContext $tl): string
     {
-        return $tl->getTypeAtPosition($this);
+        $t = $tl->getTypeAtPosition($this);
+        if ($this->ifEmptyFlag !== null) {
+            Assert::eq($this->ifEmptyFlag->getType($tl), $t);
+        }
+        return $t;
     }
 
     public function extend(string ...$path): self
@@ -194,7 +202,9 @@ final class ExtractFromHereOp implements SimpleExtractorOp
         // Validate
         $this->getType($tl);
         return [
-            'op' => $this->isFlag ? 'extractFromHereIfFlagsAreSet' : 'extractFromHere',
+            'op' => 'extractFromHere',
+            'isFlag' => $this->isFlag,
+            'ifFlagEmptyUse' => $this->ifEmptyFlag?->build($tl),
             'path' => $this->path,
         ];
     }
@@ -206,12 +216,20 @@ final class ExtractFromMethodCallOp implements SimpleExtractorOp
         /** @var string[] */
         public readonly array $path,
         public readonly bool $isFlag = false,
+        public readonly ?Op $ifEmptyFlag = null,
     ) {
+        if ($ifEmptyFlag !== null) {
+            Assert::true($isFlag);
+        }
     }
 
     public function getType(TLContext $tl): string
     {
-        return $tl->getTypeAtPosition($this);
+        $t = $tl->getTypeAtPosition($this);
+        if ($this->ifEmptyFlag !== null) {
+            Assert::eq($this->ifEmptyFlag->getType($tl), $t);
+        }
+        return $t;
     }
 
     public function extend(string ...$path): self
@@ -224,8 +242,30 @@ final class ExtractFromMethodCallOp implements SimpleExtractorOp
         // Validate
         $this->getType($tl);
         return [
-            'op' => $this->isFlag ? 'extractFromMethodCallIfFlagsAreSet' : 'extractFromMethodCall',
+            'op' => 'extractFromMethodCall',
+            'isFlag' => $this->isFlag,
+            'ifFlagEmptyUse' => $this->ifEmptyFlag?->build($tl),
             'path' => $this->path,
+        ];
+    }
+}
+
+final class ExtractStickerSetFromDocumentAttributesOp implements SimpleExtractorOp
+{
+    public function __construct() {
+    }
+
+    public function getType(TLContext $tl): string
+    {
+        Assert::eq($tl->position, 'document');
+        return 'InputStickerSet';
+    }
+
+    public function build(TLContext $tl): array
+    {
+        $this->getType($tl);
+        return [
+            'op' => 'extractStickerSetFromDocumentAttributes',
         ];
     }
 }
@@ -464,7 +504,7 @@ $populateFileRefContext = static function (string $type) use ($TL, &$locations):
             if ($constructor === 'messageEmpty') {
                 continue;
             }
-            $locations[$constructor] = new GetMessageOp(
+            $locations[$constructor][] = new GetMessageOp(
                 new ExtractFromHereOp([$constructor, 'peer_id']),
                 new ExtractFromHereOp([$constructor, 'id']),
             );
@@ -472,11 +512,11 @@ $populateFileRefContext = static function (string $type) use ($TL, &$locations):
         return true;
     }
     if ($type === 'WebPage') {
-        $locations['webPage'] = CallOp::simple('messages.getWebPage', 'webPage', ['url' => 'url', 'hash' => new LiteralOp('int', 0)]);
+        $locations['webPage'][] = CallOp::simple('messages.getWebPage', 'webPage', ['url' => 'url', 'hash' => new LiteralOp('int', 0)]);
         return true;
     }
     if ($type === 'BotApp') {
-        $locations['botApp'] = CallOp::simple('messages.getBotApp', 'botApp', [
+        $locations['botApp'][] = CallOp::simple('messages.getBotApp', 'botApp', [
             'app' => new ConstructorOp(
                 'inputBotAppID',
                 [
@@ -489,25 +529,25 @@ $populateFileRefContext = static function (string $type) use ($TL, &$locations):
         return true;
     }
     if ($type === 'BotInfo') {
-        $locations['botInfo'] = new CallOp(
+        $locations['botInfo'][] = new CallOp(
             'users.getFullUser',
             ['id' => new GetInputUserOp(new ExtractFromHereOp(['botInfo', 'user_id'], true))],
         );
         return true;
     }
     if ($type === 'StoryItem') {
-        $locations['storyItem'] = new CallOp('stories.getStoriesByID', [
+        $locations['storyItem'][] = new CallOp('stories.getStoriesByID', [
             'id' => new ArrayOp(new ExtractFromHereOp(['storyItem', 'id'])),
             'peer' => new GetInputPeerOp(new ExtractFromHereOp(['storyItem', 'from_id'], true)),
         ]);
         return true;
     }
     if ($type === 'messages.SponsoredMessages') {
-        $locations['messages.getSponsoredMessages'] = new CopyMethodCallOp('messages.getSponsoredMessages');
+        $locations['messages.getSponsoredMessages'][] = new CopyMethodCallOp('messages.getSponsoredMessages');
         return true;
     }
     if ($type === 'ChannelAdminLogEvent') {
-        $locations['channelAdminLogEvent'] = new CallOp(
+        $locations['channelAdminLogEvent'][] = new CallOp(
             'channels.getAdminLog',
             [
                 'channel' => new GetInputChannelOp(new ExtractFromMethodCallOp(['channels.getAdminLog', 'channel'])),
@@ -521,11 +561,11 @@ $populateFileRefContext = static function (string $type) use ($TL, &$locations):
         return true;
     }
     if ($type === 'bots.PreviewInfo') {
-        $locations['bots.getPreviewInfo'] = new CopyMethodCallOp('messages.getSponsoredMessages');
+        $locations['bots.getPreviewInfo'][] = new CopyMethodCallOp('messages.getSponsoredMessages');
         return true;
     }
     if ($type === 'MessageExtendedMedia') {
-        $locations['updateMessageExtendedMedia'] = new CallOp(
+        $locations['updateMessageExtendedMedia'][] = new CallOp(
             'messages.getExtendedMedia',
             [
                 'id' => new ArrayOp(new ExtractFromHereOp(['updateMessageExtendedMedia', 'msg_id'])),
@@ -535,7 +575,7 @@ $populateFileRefContext = static function (string $type) use ($TL, &$locations):
         return true;
     }
     if ($type === 'UserFull') {
-        $locations['userFull'] = new CallOp(
+        $locations['userFull'][] = new CallOp(
             'users.getFullUser',
             [
                 'id' => new GetInputUserOp(new ExtractFromHereOp(['userFull', 'id'])),
@@ -544,13 +584,13 @@ $populateFileRefContext = static function (string $type) use ($TL, &$locations):
         return true;
     }
     if ($type === 'ChatFull') {
-        $locations['chatFull'] = new CallOp(
+        $locations['chatFull'][] = new CallOp(
             'messages.getFullChat',
             [
                 'chat_id' => new ExtractFromHereOp(['chatFull', 'id']),
             ]
         );
-        $locations['channelFull'] = new CallOp(
+        $locations['channelFull'][] = new CallOp(
             'channels.getFullChannel',
             [
                 'channel' => new GetInputChannelOp(new ExtractFromHereOp(['channelFull', 'id'])),
@@ -559,7 +599,7 @@ $populateFileRefContext = static function (string $type) use ($TL, &$locations):
         return true;
     }
     if ($type === 'help.PremiumPromo') {
-        $locations['help.getPremiumPromo'] = new CopyMethodCallOp('messages.getSponsoredMessages');
+        $locations['help.getPremiumPromo'][] = new CopyMethodCallOp('messages.getSponsoredMessages');
         return true;
     }
     if ($type === 'StarsTransaction') {
@@ -567,7 +607,7 @@ $populateFileRefContext = static function (string $type) use ($TL, &$locations):
             if ($isConstructor) {
                 continue;
             }
-            $locations[$constructor] = new CallOp(
+            $locations[$constructor][] = new CallOp(
                 'payments.getStarsTransactionByID',
                 [
                     'peer' => new ExtractFromMethodCallOp([$constructor, 'peer']),
@@ -584,14 +624,14 @@ $populateFileRefContext = static function (string $type) use ($TL, &$locations):
         return true;
     }
     if ($type === 'AttachMenuBot') {
-        $locations['attachMenuBot'] = new CallOp(
+        $locations['attachMenuBot'][] = new CallOp(
             'messages.getAttachMenuBot',
             ['bot' => new GetInputUserOp(new ExtractFromHereOp(['attachMenuBot', 'bot_id']))]
         );
         return true;
     }
     if ($type === 'Theme') {
-        $locations['theme'] = new CallOp(
+        $locations['theme'][] = new CallOp(
             'account.getTheme',
             [
                 'theme' => new ConstructorOp(
@@ -607,7 +647,7 @@ $populateFileRefContext = static function (string $type) use ($TL, &$locations):
         return true;
     }
     if ($type === 'WallPaper') {
-        $locations['wallPaper'] = new CallOp(
+        $locations['wallPaper'][] = new CallOp(
             'account.getWallPaper',
             [
                 'wallpaper' => new ConstructorOp(
@@ -624,7 +664,7 @@ $populateFileRefContext = static function (string $type) use ($TL, &$locations):
 
     // Multiple variations to handle references from covers in StickerSetCovered and messages.StickerSet
     if ($type === 'StickerSet') {
-        $locations['stickerSet'] = new CallOp(
+        $locations['stickerSet'][] = new CallOp(
             'messages.getStickerSet',
             [
                 'stickerset' => new ConstructorOp(
@@ -641,7 +681,7 @@ $populateFileRefContext = static function (string $type) use ($TL, &$locations):
     }
     if ($type === 'StickerSetCovered') {
         foreach (['stickerSetMultiCovered', 'stickerSetFullCovered'] as $c) {
-            $locations[$c] = new CallOp(
+            $locations[$c][] = new CallOp(
                 'messages.getStickerSet',
                 [
                     'stickerset' => new ConstructorOp(
@@ -658,7 +698,7 @@ $populateFileRefContext = static function (string $type) use ($TL, &$locations):
         return true;
     }
     if ($type === 'messages.StickerSet') {
-        $locations['messages.stickerSet'] = new CallOp(
+        $locations['messages.stickerSet'][] = new CallOp(
             'messages.getStickerSet',
             [
                 'stickerset' => new ConstructorOp(
@@ -674,31 +714,31 @@ $populateFileRefContext = static function (string $type) use ($TL, &$locations):
         return true;
     }
     if ($type === 'messages.SavedGifs') {
-        $locations['messages.savedGifs'] = new CallOp('messages.getSavedGifs', ['hash' => new LiteralOp('long', 0)]);
+        $locations['messages.savedGifs'][] = new CallOp('messages.getSavedGifs', ['hash' => new LiteralOp('long', 0)]);
         return true;
     }
     if ($type === 'account.SavedRingtones' || $type === 'account.SavedRingtone') {
         foreach (['account.savedRingtones', 'account.savedRingtoneConverted', 'account.uploadRingtone'] as $c) {
-            $locations[$c] = new CallOp('account.getSavedRingtones', ['hash' => new LiteralOp('long', 0)]);
+            $locations[$c][] = new CallOp('account.getSavedRingtones', ['hash' => new LiteralOp('long', 0)]);
         }
         return true;
     }
     if ($type === 'RecentMeUrl') {
-        $locations['recentMeUrlChatInvite'] = new CallOp(
+        $locations['recentMeUrlChatInvite'][] = new CallOp(
             'messages.checkChatInvite',
             ['hash' => new ExtractFromHereOp(['recentMeUrlChatInvite', 'url'])],
         );
         return true;
     }
     if ($type === 'messages.AvailableEffects') {
-        $locations['messages.availableEffects'] = new CallOp(
+        $locations['messages.availableEffects'][] = new CallOp(
             'messages.getAvailableEffects',
             ['hash' => new LiteralOp('int', 0)],
         );
         return true;
     }
     if ($type === 'messages.AvailableReactions') {
-        $locations['messages.availableReactions'] = new CallOp(
+        $locations['messages.availableReactions'][] = new CallOp(
             'messages.getAvailableReactions',
             ['hash' => new LiteralOp('int', 0)],
         );
@@ -713,8 +753,8 @@ $populateFileRefContext = static function (string $type) use ($TL, &$locations):
         // Ignore ephemeral inline results
         return true;
     }
-    if ($type === 'photos.Photos' || $type === 'photos.Photo') {
-        $locations['photo'] = new CallOp(
+    if ($type === 'photos.Photos') {
+        $locations['photo'][] = new CallOp(
             'photos.getUserPhotos',
             [
                 'user_id' => new ExtractFromMethodCallOp(['photos.getUserPhotos', 'user_id']),
@@ -723,7 +763,27 @@ $populateFileRefContext = static function (string $type) use ($TL, &$locations):
                 'limit' => new LiteralOp('int', 1),
             ]
         );
-        // TODO: implement manually
+        return true;
+    }
+    if ($type === 'photos.Photo') {
+        foreach (['photos.updateProfilePhoto', 'photos.updateProfilePhoto'] as $method) {
+            $locations['photo'][] = new CallOp(
+                'photos.getUserPhotos',
+                [
+                    'user_id' => new ExtractFromMethodCallOp(
+                        [$method, 'bot'],
+                        true,
+                        new ConstructorOp(
+                            'inputUserSelf',
+                            []
+                        )
+                    ),
+                    'offset' => new LiteralOp('int', -1),
+                    'max_id' => new ExtractFromHereOp(['photo', 'id']),
+                    'limit' => new LiteralOp('int', 1),
+                ]
+            );
+        }
         return true;
     }
     if (in_array($type, [
@@ -733,7 +793,13 @@ $populateFileRefContext = static function (string $type) use ($TL, &$locations):
         'messages.RecentStickers',
         'messages.FavedStickers',
     ], true)) {
-        // TODO!
+        $locations['document'][] = new CallOp(
+            'messages.getStickerSet',
+            [
+                'stickerset' => new ExtractStickerSetFromDocumentAttributesOp(),
+                'hash' => new LiteralOp('int', 0),
+            ]
+        );
         return true;
     }
     return false;
@@ -801,7 +867,9 @@ if ($final) {
     die(1);
 }
 
-foreach ($locations as $constructor => $op) {
+foreach ($locations as $constructor => $ops) {
     var_dump("Processing $constructor");
-    ([$constructor, $op->build(new TLContext($TL, $constructor))]);
+    foreach ($ops as $op) {
+        var_dump([$constructor, $op->build(new TLContext($TL, $constructor))]);
+    }
 }
