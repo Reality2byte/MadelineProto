@@ -1,0 +1,54 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * This file is part of MadelineProto.
+ * MadelineProto is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+ * MadelineProto is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU General Public License along with MadelineProto.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @author    Daniil Gentili <daniil@daniil.it>
+ * @copyright 2016-2025 Daniil Gentili <daniil@daniil.it>
+ * @license   https://opensource.org/licenses/AGPL-3.0 AGPLv3
+ * @link https://docs.madelineproto.xyz MadelineProto documentation
+ */
+
+namespace danog\MadelineProto\FileRefExtractor\Ops;
+
+use danog\MadelineProto\FileRefExtractor\Op;
+use danog\MadelineProto\FileRefExtractor\TLContext;
+use danog\MadelineProto\FileRefExtractor\TLWrapper;
+use Webmozart\Assert\Assert;
+
+final readonly class CopyMethodCallOp implements ActionOp
+{
+    public function __construct(private readonly string $method)
+    {
+    }
+    public function hasBackreference(): bool
+    {
+        return false;
+    }
+
+    public function normalize(array $stack, string $current): ?Op
+    {
+        Assert::eq($current, $this->method);
+        Assert::isEmpty($stack);
+        return $this;
+    }
+    public function getType(TLContext $tl): string
+    {
+        return $tl->tl->tl->getMethods()->findByMethod($this->method)['type'];
+    }
+
+    public function build(TLContext $tl): array
+    {
+        Assert::eq($tl->position, $this->method, "Current constructor {$tl->position} does not match expected method {$this->method}");
+        $this->getType($tl); // Validate type
+        return ['op' => 'copyMethodCall', 'method' => $this->method];
+    }
+}
+
