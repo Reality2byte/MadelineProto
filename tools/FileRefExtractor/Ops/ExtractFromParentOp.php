@@ -22,6 +22,7 @@ use danog\MadelineProto\FileRefExtractor\BuildMode\Ast;
 use danog\MadelineProto\FileRefExtractor\BuildMode\Flat;
 use danog\MadelineProto\FileRefExtractor\FieldExtractorOp;
 use danog\MadelineProto\FileRefExtractor\TLContext;
+use danog\MadelineProto\FileRefExtractor\TypedOp;
 use Webmozart\Assert\Assert;
 
 final readonly class ExtractFromParentOp extends FieldExtractorOp
@@ -36,7 +37,7 @@ final readonly class ExtractFromParentOp extends FieldExtractorOp
             if ($ignoreFlag && \array_key_exists(2, $part) && $part[2] === null) {
                 return null;
             }
-            if (isset($part[2]) && $part[2] !== true) {
+            if (isset($part[2]) && $part[2] instanceof TypedOp) {
                 $n = $part[2]->normalize($stack, $current, $ignoreFlag);
                 if ($n === null) {
                     return null;
@@ -54,18 +55,18 @@ final readonly class ExtractFromParentOp extends FieldExtractorOp
         $t = $this->getType($tl);
         if ($tl->buildMode instanceof Flat) {
         } elseif ($tl->buildMode instanceof Ast) {
-            /*Assert::eq($tl->buildMode->needsMethod ?? $this->path[0][0], $this->path[0][0]);
-            $tl->buildMode->needsMethod = $this->path[0][0];*/
+            Assert::eq($tl->buildMode->needsParent ?? $this->path[0][0], $this->path[0][0]);
+            $tl->buildMode->needsParent = $this->path[0][0];
         }
         $new = [];
         foreach ($this->path as $part) {
-            if (isset($part[2]) && $part[2] !== true) {
+            if (isset($part[2]) && $part[2] instanceof TypedOp) {
                 $part[2] = $part[2]->build($tl);
             }
             $new[] = $part;
         }
         return [
-            'op' => 'extractFromMethodCall',
+            'op' => 'extractFromParentCall',
             'path' => $this->path,
         ];
     }

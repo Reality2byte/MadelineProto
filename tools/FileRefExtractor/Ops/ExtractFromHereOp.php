@@ -54,7 +54,7 @@ final readonly class ExtractFromHereOp extends FieldExtractorOp
 
         $new = [];
         foreach ($this->path as $part) {
-            if (isset($part[2]) && $part[2] !== true) {
+            if (isset($part[2]) && $part[2] instanceof TypedOp) {
                 $part[2] = $part[2]->build($tl);
             }
             $new[] = $part;

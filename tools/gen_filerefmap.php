@@ -35,7 +35,7 @@ foreach ($TL->getConstructorsOfType('Message') as $constructor => $_) {
     $locations[$constructor][] = new GetMessageOp(
         new ExtractFromHereOp([[$constructor, 'peer_id']]),
         new ExtractFromHereOp([[$constructor, 'id']]),
-        new ExtractFromHereOp([[$constructor, 'from_scheduled']]),
+        $constructor === 'message' ? new ExtractFromHereOp([[$constructor, 'from_scheduled', true]]) : null,
     );
 }
 
@@ -60,11 +60,12 @@ $locations['storyItem'][] = new CallOp(
     ]
 );
 
-foreach (['foundStory', 'publicForwardStory', 'webPageAttributeStory'] as $c) {
+foreach (['foundStory', 'publicForwardStory', 'webPageAttributeStory', 'messageMediaStory'] as $c) {
+    $optional = $c === 'webPageAttributeStory' || $c === 'messageMediaStory';
     $locations[$c][] = new CallOp(
         'stories.getStoriesByID',
         [
-            'id' => new ArrayOp(new ExtractFromHereOp([$c === 'webPageAttributeStory' ? [$c, 'story', null] : [$c, 'story'], ['storyItem', 'id']])),
+            'id' => new ArrayOp(new ExtractFromHereOp([$optional ? [$c, 'story', null] : [$c, 'story'], ['storyItem', 'id']])),
             'peer' => new GetInputPeerOp(new ExtractFromHereOp([[$c, 'peer']])),
         ]
     );
@@ -314,10 +315,11 @@ $recurse = static function (Closure $onStackEnd, string $type, array &$stack, ar
             continue;
         }
         $t = $constructor['type'];
-        if (isset($stackTypes[$t])) {
+        $stackTypes[$t] ??= 0;
+        if ($stackTypes[$t] > 1) {
             continue;
         }
-        $stackTypes[$t] = true;
+        $stackTypes[$t]++;
         foreach ($constructor['params'] as $param) {
             if ((
                 $param['type'] === $type ||
@@ -335,7 +337,7 @@ $recurse = static function (Closure $onStackEnd, string $type, array &$stack, ar
 
             }
         }
-        unset($stackTypes[$t]);
+        $stackTypes[$t]--;
     }
     foreach ($TL->getMethodsOfType($type, true) as $method => $data) {
         $stack[$pos] = [$method, ''];
@@ -354,6 +356,7 @@ $output = new Ast;
 foreach ($locations as $constructor => $ops) {
     foreach ($ops as $idx => $op) {
         $op->build(new TLContext($TL, $output, $constructor));
+        $output->cleanup();
     }
 }
 $validated = [];
@@ -361,7 +364,7 @@ $validated = [];
 $tmp = new Ast;
 foreach ($fileRefs as $type => $constructor) {
     $stack = [[$constructor, 'file_reference']];
-    $stackTypes = [$type => true];
+    $stackTypes = [$type => 1];
     $recurse(
         static function (array $stack) use ($locations, $TL, $tmp, &$validated, $storyMethods, $starMethods): void {
             $slice = [];
@@ -377,6 +380,7 @@ foreach ($fileRefs as $type => $constructor) {
                     }
                     $hadAny = true;
                     $normalized->build(new TLContext($TL, $tmp, $top));
+                    $tmp->cleanup();
                     $validated[$pair[0]][spl_object_id($op)] = $op;
 
                     $normalized = $op->normalize($slice, $pair[0], true);
@@ -409,6 +413,7 @@ foreach ($fileRefs as $type => $constructor) {
                 }
                 foreach ($slice as [$cons]) {
                     if ($cons === 'webPageAttributeStory'
+                        || $cons === 'messageMediaStory'
                         || $cons === 'foundStory'
                         || $cons === 'publicForwardStory'
                         || $cons === 'peerStories'

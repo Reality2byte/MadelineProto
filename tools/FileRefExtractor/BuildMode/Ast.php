@@ -23,10 +23,10 @@ use danog\MadelineProto\FileRefExtractor\BuildMode;
 final class Ast implements BuildMode
 {
     public array $output = [];
-    public ?string $needsMethod = null;
+    public ?string $needsParent = null;
 
     public function cleanup(): void
     {
-        $this->needsMethod = null;
+        $this->needsParent = null;
     }
 }

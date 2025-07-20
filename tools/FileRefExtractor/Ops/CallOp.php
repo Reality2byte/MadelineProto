@@ -122,7 +122,7 @@ final readonly class CallOp implements ActionOp
                 'op' => 'call',
                 'method' => $this->method,
                 'args' => $final,
-                'needsMethod' => $out->needsMethod,
+                'needsParent' => $out->needsParent,
             ];
         }
     }

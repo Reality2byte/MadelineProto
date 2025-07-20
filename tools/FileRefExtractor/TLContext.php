@@ -19,7 +19,6 @@ declare(strict_types=1);
 namespace danog\MadelineProto\FileRefExtractor;
 
 use AssertionError;
-use danog\MadelineProto\FileRefExtractor\Ops\ExtractFromHereOp;
 use Webmozart\Assert\Assert;
 
 final readonly class TLContext
@@ -65,73 +64,5 @@ final readonly class TLContext
             $extra = implode(', ', array_keys($params));
             throw new AssertionError("Extra parameters in constructor or method $constructor: $extra");
         }
-    }
-
-    public function getTypeAtPosition(FieldExtractorOp $path): string
-    {
-        if ($path instanceof ExtractFromHereOp) {
-            Assert::eq($this->position, $path->path[0][0], "getTypeAtPosition: Current constructor {$this->position} does not match expected constructor {$path->path[0][0]}");
-        }
-        $path = $path->path;
-        $idx = 0;
-        $type = null;
-        $realType = null;
-        do {
-            [$requiredConstructor, $requiredParam] = $path[$idx];
-            $expectFlag = \array_key_exists(2, $path[$idx]);
-            $alternativeFlagType = $path[$idx][2] ?? null;
-
-            if ($realType !== null) {
-                $consOfType = $this->tl->getConstructorsOfType($realType, true);
-                $methodsOfType = $this->tl->getMethodsOfType($realType, true);
-
-                if (isset($consOfType[$requiredConstructor])) {
-                    // OK
-                } elseif (isset($methodsOfType[$requiredConstructor])) {
-                    // OK
-                } else {
-                    throw new AssertionError("{$requiredConstructor} is NOT a constructor of type $type, path");
-                }
-            }
-            $constructor = $this->tl->tl->getConstructors()->findByPredicate($requiredConstructor);
-            if ($constructor === false) {
-                $constructor = $this->tl->tl->getMethods()->findByMethod($requiredConstructor);
-            }
-            Assert::notFalse($constructor, "Constructor or method not found for path");
-
-            $type = null;
-            if ($requiredParam === '') {
-                Assert::true(isset($constructor['method']), "Expected method at position $idx in path ".json_encode($path));
-                $type = $constructor['type'];
-                $realType = $constructor['subtype'] ?? $constructor['type'];
-                Assert::false($expectFlag);
-                continue;
-            }
-            $n = $constructor['predicate'] ?? $constructor['method'];
-            foreach ($constructor['params'] as $param) {
-                if ($param['name'] === $requiredParam) {
-                    $type = isset($param['subtype']) ? "Vector<{$param['subtype']}>" : $param['type'];
-                    $realType = $param['subtype'] ?? $param['type'];
-                    $isFlag = isset($param['pow']);
-                    if ($isFlag !== $expectFlag) {
-                        $isFlag = $isFlag ? 'flag' : 'no flag';
-                        $expectFlag = $expectFlag ? 'flag' : 'no flag';
-                        throw new AssertionError("Expected $expectFlag, got $isFlag for $requiredConstructor.$requiredParam at position $idx in path ".json_encode($path));
-                    }
-                    if ($isFlag) {
-                        if ($alternativeFlagType instanceof TypedOp) {
-                            Assert::eq($type, $alternativeFlagType->getType($this), "Expected flag type at position $idx in path ".json_encode($path));
-                        } elseif ($alternativeFlagType === true) {
-                            Assert::eq($type, 'true');
-                        }
-                    }
-                    break;
-                }
-            }
-            Assert::notNull($type, "Parameter {$requiredParam} not found in constructor or method $n");
-            Assert::notNull($realType, "Parameter {$requiredParam} not found in constructor or method $n");
-        } while (++$idx < \count($path));
-
-        return $type;
     }
 }

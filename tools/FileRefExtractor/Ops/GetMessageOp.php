@@ -28,6 +28,7 @@ final readonly class GetMessageOp implements ActionOp
     public function __construct(
         private readonly FieldExtractorOp $peer,
         private readonly FieldExtractorOp $id,
+        private readonly ?FieldExtractorOp $fromScheduled,
     ) {
     }
     public function normalize(array $stack, string $current, bool $ignoreFlag): ?ActionOp
@@ -40,8 +41,12 @@ final readonly class GetMessageOp implements ActionOp
         if ($id === null) {
             return null;
         }
-        if ($peer !== $this->peer || $id !== $this->id) {
-            return new self($peer, $id);
+        $fromScheduled = $this->fromScheduled?->normalize($stack, $current, $ignoreFlag);
+        if ($fromScheduled === null && $this->fromScheduled !== null) {
+            return null;
+        }
+        if ($peer !== $this->peer || $id !== $this->id || $fromScheduled !== $this->fromScheduled) {
+            return new self($peer, $id, $fromScheduled);
         }
         return $this;
     }
@@ -54,10 +59,18 @@ final readonly class GetMessageOp implements ActionOp
     {
         Assert::eq($this->peer->getType($tl), 'Peer');
         Assert::eq($this->id->getType($tl), 'int');
+        if ($this->fromScheduled !== null) {
+            Assert::eq($this->fromScheduled->getType($tl), 'true');
+        }
+        $extra = [];
+        if ($this->fromScheduled !== null) {
+            $extra['from_scheduled'] = $this->fromScheduled->build($tl);
+        }
         $result = [
             'op' => 'get_message',
             'peer' => $this->peer->build($tl),
             'id' => $this->id->build($tl),
+            ...$extra,
         ];
     }
 }
