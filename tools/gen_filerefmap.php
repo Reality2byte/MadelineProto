@@ -541,6 +541,9 @@ foreach ($locations as $constructor => $ops) {
 }
 $output = $output->getOutput();
 
-var_dump($output);
-//var_dump($locations);
-var_dump("OK!");
+file_put_contents(
+    __DIR__.'/file_ref_map.json',
+    json_encode($output)
+);
+
+echo("OK!\n".PHP_EOL);
