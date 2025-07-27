@@ -140,7 +140,7 @@ class MTProtoOutgoingMessage extends MTProtoMessage
                 'error_code' => '408',
             ]);
 
-            if ($self->hasMsgId()) {
+            if ($self->hasMsgId() && $self->constructor !== 'rpc_drop_answer') {
                 $self->connection->API->logger("Cancelling $self...");
                 try {
                     $self->connection->API->logger($self->connection->methodCallAsyncRead(
