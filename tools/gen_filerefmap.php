@@ -2,11 +2,12 @@
 
 use danog\MadelineProto\FileRefExtractor\BuildMode\Ast;
 use danog\MadelineProto\FileRefExtractor\FileRefGenerator;
+use danog\MadelineProto\TL\TL;
 
 require 'vendor/autoload.php';
 
 // Cleanup schema
-$schemaFile = __DIR__.'/../src/TL_filerefs.tl';
+$schemaFile = __DIR__.'/../src/TL_file_ref_map_schema.tl';
 $schema = explode("\n", file_get_contents($schemaFile));
 foreach ($schema as &$line) {
     $line = rtrim(trim($line), ';');
@@ -37,14 +38,22 @@ FileRefGenerator::generate(
     $last,
     __DIR__."/../src/TL_telegram_v$last.tl",
     __DIR__.'/../src/file_ref_map.dat',
-    __DIR__.'/../src/TL_filerefs_db.tl',
+    __DIR__.'/../src/file_ref_map.json',
 );
 
 copy(
-    __DIR__."/../src/TL_filerefs_db.tl",
-    __DIR__."/../schemas/TL_telegram_v{$last}_filerefs_db.tl"
+    __DIR__."/../src/TL_file_ref_map_schema.tl",
+    __DIR__."/../schemas/TL_telegram_v{$last}_file_ref_map_schema.tl"
 );
+
+$TL = new TL(null);
+file_put_contents(__DIR__."/../schemas/TL_telegram_v{$last}_file_ref_map_schema.json", json_encode($TL->toJson($schema), flags: JSON_THROW_ON_ERROR));
+
 copy(
     __DIR__."/../src/file_ref_map.dat",
     __DIR__."/../schemas/TL_telegram_v{$last}_file_ref_map.dat"
+);
+copy(
+    __DIR__."/../src/file_ref_map.json",
+    __DIR__."/../schemas/TL_telegram_v{$last}_file_ref_map.json"
 );

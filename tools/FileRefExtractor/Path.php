@@ -116,7 +116,7 @@ final readonly class Path
             }
             $new[] = $newPart;
         }
-        $serialized = $extractor.json_encode($new);
+        $serialized = $extractor.json_encode($new, flags: JSON_THROW_ON_ERROR);
         if (isset($tl->buildMode->stored[$serialized])) {
             $name = $tl->buildMode->stored[$serialized]['name'];
         } else {

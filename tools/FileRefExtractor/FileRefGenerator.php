@@ -34,9 +34,6 @@ use danog\MadelineProto\FileRefExtractor\Ops\GetMessageOp;
 use danog\MadelineProto\FileRefExtractor\Ops\Noop;
 use danog\MadelineProto\FileRefExtractor\Ops\PrimitiveLiteralOp;
 use danog\MadelineProto\FileRefExtractor\Ops\ThemeFormatOp;
-use danog\MadelineProto\FileRefExtractor\Path;
-use danog\MadelineProto\FileRefExtractor\TLContext;
-use danog\MadelineProto\FileRefExtractor\TLWrapper;
 use danog\MadelineProto\Logger;
 use danog\MadelineProto\Magic;
 use danog\MadelineProto\Settings\TLSchema;
@@ -44,7 +41,7 @@ use danog\MadelineProto\TL\TL;
 
 final class FileRefGenerator
 {
-    public static function generate(int $layer, string $inputSchema, string $outputFile, string $outputSchema): void
+    public static function generate(int $layer, string $inputSchema, string $outputFile, string $outputFileJson): void
     {
         Magic::start(false);
         $schema = new TLSchema;
@@ -626,10 +623,7 @@ final class FileRefGenerator
             }
         }
 
-        $output->finalize(
-            $outputFile,
-            $outputSchema,
-        );
+        $output->finalize($outputFile, $outputFileJson);
 
         echo("OK $layer!\n".PHP_EOL);
     }

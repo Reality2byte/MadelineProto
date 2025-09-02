@@ -55,24 +55,30 @@ final class Ast implements BuildMode
         return $id;
     }
 
-    public function finalize(string $refMapFile, string $dbSchemaFile): void
+    public function finalize(string $refMapFile, string $refMapFileJson): void
     {
         $dbSchema = '';
         foreach ($this->outputSchema as $constructor => $params) {
             $dbSchema .= self::stringifySchema($constructor, $params)."\n";
         }
-        file_put_contents($dbSchemaFile, $dbSchema);
-        $value = ['_' => 'fileReferenceOrigins', 'db_schema' => $dbSchema, 'ctxs' => $this->output];
+        $dbSchemaJSON = (new TL(null))->toJson($dbSchema);
+        $value = [
+            '_' => 'fileReferenceOrigins',
+            'db_schema' => $dbSchema,
+            'db_schema_json' => json_encode($dbSchemaJSON, flags: JSON_THROW_ON_ERROR),
+            'ctxs' => $this->output,
+        ];
         Magic::start(false);
 
         $s = new TLSchema;
-        $s = $s->setOther(['filerefs' => __DIR__ . '/../../../src/TL_filerefs.tl']);
+        $s = $s->setOther(['filerefs' => __DIR__ . '/../../../src/TL_file_ref_map_schema.tl']);
         $TL = new TL((new ReflectionClass(MTProto::class))->newInstanceWithoutConstructor());
         $TL->init($s);
         $serialized = $TL->serializeObject(['type' => 'FileReferenceOrigins'], $value, '');
         $valueDe = $TL->deserialize($serialized, ['type' => '', 'connection' => null, 'encrypted' => true]);
         Assert::true($value == $valueDe);
         file_put_contents($refMapFile, $serialized);
+        file_put_contents($refMapFileJson, json_encode($valueDe, flags: JSON_THROW_ON_ERROR));
     }
 
     private static function stringifySchema(string $constructor, array $params): string
