@@ -500,6 +500,11 @@ $pre = [
         'from_scheduled' => 'flags.0?true',
         'peer' => 'long',
         'id' => 'int'
+    ],
+    'fileSourceStarsTransaction' => [
+        'flags' => '#',
+        'id' => 'string',
+        'refund' => 'flags.0?true',
     ]
 ];
 

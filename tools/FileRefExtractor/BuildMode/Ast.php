@@ -91,7 +91,10 @@ final class Ast implements BuildMode
 
             $names = $this->storedNames;
             if ($this->storedFlags) {
-                $names['flags'] = '#';
+                $names = [
+                    'flags' => '#',
+                    ...$names
+                ];
             }
 
             if (isset($this->outputSchema[$constructor])) {
