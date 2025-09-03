@@ -30,16 +30,17 @@ use Webmozart\Assert\Assert;
 
 final class Ast implements BuildMode
 {
-    /** @var array<string, array{name: string, type: string}> */
-    public array $stored = [];
     /** @var array<string, string> */
-    public array $storedNames = [];
+    public array $storedByPath = [];
+    /** @var array<string, array{type: string, extractor: array}> */
+    public array $stored = [];
     public int $storedFlags = 0;
 
     public ?string $curKey = null;
 
     private array $output = [];
     private array $skipped = [];
+    private array $actions = [];
     private ?string $needsParent = null;
 
     public function __construct(
@@ -63,12 +64,21 @@ final class Ast implements BuildMode
             $dbSchema .= self::stringifySchema($constructor, $params)."\n";
         }
         $dbSchemaJSON = (new TL(null))->toJson($dbSchema);
+
+        $actions = [];
+        foreach ($this->actions as $action) {
+            if ($action['action']['_'] === 'callOp') {
+                $action['action']['args'] = array_values($action['action']['args']);
+            }
+            $actions[] = $action;
+        }
         $value = [
             '_' => 'fileReferenceOrigins',
             'db_schema' => $dbSchema,
             'db_schema_json' => json_encode($dbSchemaJSON, flags: JSON_THROW_ON_ERROR),
-            'ctxs' => $this->output,
+            'origins' => $this->output,
             'skipped' => $this->skipped,
+            'actions' => $actions,
         ];
         Magic::start(false);
 
@@ -78,8 +88,6 @@ final class Ast implements BuildMode
         $TL->init($s);
         $serialized = $TL->serializeObject(['type' => 'FileReferenceOrigins'], $value, '');
         $valueDe = $TL->deserialize($serialized, ['type' => '', 'connection' => null, 'encrypted' => true]);
-        file_put_contents('/tmp/a.json', json_encode($valueDe, flags: JSON_THROW_ON_ERROR));
-        file_put_contents('/tmp/b.json', json_encode($value, flags: JSON_THROW_ON_ERROR));
         Assert::true($value == $valueDe);
         file_put_contents($refMapFile, $serialized);
         file_put_contents($refMapFileJson, json_encode($valueDe, flags: JSON_THROW_ON_ERROR));
@@ -114,17 +122,17 @@ final class Ast implements BuildMode
             $constructor = $action['stored_constructor'];
             unset($action['stored_constructor']);
 
-            $names = $this->storedNames;
+            $stored = $this->stored;
             $flags = [];
             if ($this->storedFlags) {
-                foreach ($names as $name => $type) {
+                foreach ($stored as $name => ['type' => $type]) {
                     if (str_starts_with($type, 'flags.')) {
                         $flags[$name] = $type;
                     }
                 }
-                $names = [
-                    'flags' => '#',
-                    ...$names,
+                $stored = [
+                    'flags' => ['type' => '#'],
+                    ...$stored,
                 ];
             }
             $skipped = [];
@@ -134,7 +142,7 @@ final class Ast implements BuildMode
                 foreach ($existing as $name => $type) {
                     if (str_starts_with($type, 'flags.')) {
                         if (isset($flags[$name])) {
-                            unset($flags[$name], $names[$name]);
+                            unset($flags[$name], $stored[$name]);
                         } else {
                             $skipped[]= $name;
                         }
@@ -144,29 +152,74 @@ final class Ast implements BuildMode
                     throw new AssertionError("Have leftover flags: ".implode(' ', $flags));
                 }
                 foreach ($existing as $name => $type) {
-                    if (isset($names[$name])) {
-                        if ($names[$name] === $type) {
-                            unset($names[$name]);
+                    if (isset($stored[$name])) {
+                        if ($stored[$name]['type'] === $type) {
+                            unset($stored[$name]);
                         } else {
-                            throw new AssertionError("Type mismatch for $constructor.$name: have {$names[$name]}, need $type");
+                            throw new AssertionError("Type mismatch for $constructor.$name: have {$stored[$name]['type']}, need $type");
                         }
                     } elseif (!str_starts_with($type, 'flags.') && $name !== 'flags') {
                         throw new AssertionError("Missing pre-existing parameter $constructor.$name for $constructor");
                     }
                 }
-                foreach ($names as $name => $type) {
+                foreach ($stored as $name => ['type' => $type]) {
                     throw new AssertionError("Leftover parameter $constructor.$name:$type for ".self::stringifySchema($constructor, $existing));
                 }
             } else {
-                $this->outputSchema[$constructor] = $names;
+                $types = [];
+                foreach ($stored as $name => ['type' => $type]) {
+                    $types[$name] = $type;
+                }
+                $this->outputSchema[$constructor] = $types;
+            }
+
+            if (isset($this->actions[$constructor])) {
+                $existingAction = $this->actions[$constructor];
+                Assert::eq($constructor, $existingAction['stored_constructor']);
+                $existingAction = $existingAction['action'];
+                Assert::eq($existingAction['_'], $action['_']);
+
+                // It's okay to fill missing params as the source of the data is always the same,
+                // aka the source_constructor will always be of the same type, it should have all
+                // needed flags, and the behavior will be consistent.
+                if ($action['_'] === 'getMessageOp') {
+                    if (!isset($existingAction['from_scheduled']) && isset($action['from_scheduled'])) {
+                        $existingAction['from_scheduled'] = $action['from_scheduled'];
+                    } elseif (isset($existingAction['from_scheduled']) && !isset($action['from_scheduled'])) {
+                        $action['from_scheduled'] = $existingAction['from_scheduled'];
+                    }
+                } else {
+                    Assert::eq($action['_'], 'callOp');
+                    foreach ($action['args'] as $k => $arg) {
+                        Assert::string($k);
+                        if (!isset($existingAction['args'][$arg['key']])) {
+                            $existingAction['args'][$arg['key']] = $arg;
+                        }
+                    }
+                    foreach ($existingAction['args'] as $k => $arg) {
+                        Assert::string($k);
+                        if (!isset($action['args'][$arg['key']])) {
+                            $action['args'][$arg['key']] = $arg;
+                        }
+                    }
+                }
+                Assert::eq($existingAction, $action, "Mismatched actions for $constructor");
+
+                $this->actions[$constructor]['action'] = $existingAction;
+            } else {
+                $this->actions[$constructor] = [
+                    '_' => 'action',
+                    'stored_constructor' => $constructor,
+                    'action' => $action,
+                ];
             }
 
             $out = [
                 '_' => 'origin',
                 'predicate' => $ctx->position,
                 'is_constructor' => $ctx->isConstructor,
-                'action' => $action,
                 'stored_constructor' => $constructor,
+                'stored_params' => array_column($this->stored, 'extractor'),
                 'skipped_flags' => $skipped,
                 'parent_is_constructor' => false,
             ];
@@ -178,7 +231,7 @@ final class Ast implements BuildMode
 
             $this->storedFlags = 0;
             $this->stored = [];
-            $this->storedNames = [];
+            $this->storedByPath = [];
             Assert::null($why);
         } elseif ($why !== null) {
             $this->skipped[] = [
@@ -189,7 +242,7 @@ final class Ast implements BuildMode
             ];
             Assert::null($action);
             Assert::isEmpty($this->stored);
-            Assert::isEmpty($this->storedNames);
+            Assert::isEmpty($this->storedByPath);
             Assert::eq($this->storedFlags, 0);
         } else {
             throw new AssertionError("Either 'action' or 'why' must be provided.");

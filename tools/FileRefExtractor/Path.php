@@ -85,7 +85,7 @@ final readonly class Path
         );
     }
 
-    public function buildPath(TLContext $tl, string $extractor): array
+    public function buildPath(TLContext $tl, string $extractor): string
     {
         $new = [];
         foreach ($this->path as $k => $part) {
@@ -116,9 +116,9 @@ final readonly class Path
             }
             $new[] = $newPart;
         }
-        $serialized = $extractor.json_encode($new, flags: JSON_THROW_ON_ERROR);
-        if (isset($tl->buildMode->stored[$serialized])) {
-            $name = $tl->buildMode->stored[$serialized]['name'];
+        $serialized = json_encode([$extractor, $this->isFromParent, $new], flags: JSON_THROW_ON_ERROR);
+        if (isset($tl->buildMode->storedByPath[$serialized])) {
+            $name = $tl->buildMode->storedByPath[$serialized];
         } else {
             $isFlag = $newPart['flag']['_'] === 'paramIsFlagPassthrough';
             $type = $this->getType($tl);
@@ -157,23 +157,23 @@ final readonly class Path
             }
             $name = $tl->buildMode->curKey;
             Assert::notNull($name);
-            if (isset($tl->buildMode->storedNames[$name])) {
+            if (isset($tl->buildMode->stored[$name])) {
                 throw new AssertionError("Need custom name (already have $name) for ".json_encode($this->path));
             }
-            $tl->buildMode->storedNames[$name] = $type;
-            $tl->buildMode->stored[$serialized] = [
-                'name' => $name,
+            $tl->buildMode->stored[$name] = [
                 'type' => $type,
+                'extractor' => [
+                    '_' => $extractor,
+                    'from' => ['_' => $this->isFromParent ? 'pathParent': 'path', 'parts' => $new],
+                    'to' => $name,
+                ],
             ];
+            $tl->buildMode->storedByPath[$serialized] = $name;
         }
         if ($this->isFromParent) {
             $tl->buildMode->setNeedsParent($this->path[0][0]);
         }
-        return [
-            '_' => $extractor,
-            'from' => ['_' => $this->isFromParent ? 'pathParent': 'path', 'parts' => $new],
-            'to' => $name,
-        ];
+        return $name;
     }
     public function getType(TLContext $tl): string
     {

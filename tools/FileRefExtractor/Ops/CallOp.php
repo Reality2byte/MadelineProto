@@ -71,7 +71,7 @@ final readonly class CallOp implements ActionOp
         $tl->validateParams($this->method, false, $this->args);
         $types = [];
         foreach ($this->args as $from => $to) {
-            $final[] = ['_' => 'typedOpArg', 'key' => $from, 'value' => $tl->build($to, $from)];
+            $final[$from] = ['_' => 'typedOpArg', 'key' => $from, 'value' => $tl->build($to, $from)];
             $types[$from] = $to->getType($tl);
         }
 

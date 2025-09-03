@@ -1,16 +1,11 @@
 // Root
-fileReferenceOrigins#45a1a693 db_schema:string db_schema_json:string ctxs:Vector<Origin> skipped:Vector<SkippedOrigin>= FileReferenceOrigins;
+fileReferenceOrigins#63adca68 db_schema:string db_schema_json:string origins:Vector<Origin> skipped:Vector<SkippedOrigin> actions:Vector<Action> = FileReferenceOrigins;
 
-origin#24443b33 flags:# predicate:string is_constructor:flags.0?true action:ActionOp stored_constructor:string skipped_flags:Vector<string> needs_parent:flags.3?string parent_is_constructor:flags.4?true = origin;
+origin#b62177bf flags:# predicate:string is_constructor:flags.0?true stored_constructor:string stored_params:Vector<FieldExtractor> skipped_flags:Vector<string> needs_parent:flags.3?string parent_is_constructor:flags.4?true = origin;
 
 skippedOrigin#7c62809e flags:# predicate:string is_constructor:flags.0?true why:string = SkippedOrigin;
 
-// Actions
-callOp#c2ff3383 method:string args:Vector<TypedOpArg> = ActionOp;
-getMessageOp#84b69f70 flags:# peer:TypedOp id:TypedOp from_scheduled:flags.0?TypedOp = ActionOp;
-
-// For string => TypedOp dictionaries
-typedOpArg#3a2930c2 key:string value:TypedOp = TypedOpArg;
+action#9539f410 stored_constructor:string action:ActionOp = Action;
 
 // Field extraction path
 paramNotFlag#acd9d5cf = ParamFlag;
@@ -23,7 +18,7 @@ pathPart#7b8b07d4 flags:# constructor:string param:string flag:ParamFlag = PathP
 path#0c3586a2 parts:Vector<PathPart> = Path;
 pathParent#58f13684 parts:Vector<PathPart> = Path;
 
-// Extractor+storer
+// Extractor
 extractAndStore#72069549 from:Path to:string = FieldExtractor;
 
 extractInputStickerSetFromDocumentAttributesAndStore#369d8d14 from:Path to:string = FieldExtractor;
@@ -38,17 +33,24 @@ extractChannelIdFromInputChannelAndStore#b662660e from:Path to:string = FieldExt
 extractUserIdFromUserAndStore#4778ec63 from:Path to:string = FieldExtractor;
 extractUserIdFromInputUserAndStore#7720aa2e from:Path to:string = FieldExtractor;
 
+// Actions
+callOp#c2ff3383 method:string args:Vector<TypedOpArg> = ActionOp;
+getMessageOp#84b69f70 flags:# peer:TypedOp id:TypedOp from_scheduled:flags.0?TypedOp = ActionOp;
+
+// For string => TypedOp dictionaries
+typedOpArg#3a2930c2 key:string value:TypedOp = TypedOpArg;
+
 // Typed constructors, the type is specified to simplify codegen,
 // but isn't strictly necessary as it can be inferred from the TypedOpOp.
 // It is fully pre-validated during the generation of the definition file.
 typedOp#705b10ec type:string op:TypedOpOp = TypedOp;
 
 // The actual ops
-copyOp#1630c9f5 from:FieldExtractor = TypedOpOp;
+copyOp#f48f418f from:string = TypedOpOp;
 
-getInputChannelByIdOp#3eb8d855 from:FieldExtractor = TypedOpOp;
-getInputUserByIdOp#a3a4e6c2 from:FieldExtractor = TypedOpOp;
-getInputPeerByIdOp#acfb2a4a from:FieldExtractor = TypedOpOp;
+getInputChannelByIdOp#3cb47531 from:string = TypedOpOp;
+getInputUserByIdOp#c0ee4326 from:string = TypedOpOp;
+getInputPeerByIdOp#19813750 from:string = TypedOpOp;
 
 // Literals & constructors (methods not allowed or needed here)
 constructorOp#107f8d8a constructor:string args:Vector<TypedOpArg> = TypedOpOp;
