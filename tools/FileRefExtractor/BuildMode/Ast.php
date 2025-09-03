@@ -57,9 +57,36 @@ final class Ast implements BuildMode
         return $id;
     }
 
-    public function finalize(string $refMapFile, string $refMapFileJson): void
+    public function finalize(array $outgoingCons, array $incomingCons, string $refMapFile, string $refMapFileJson): void
     {
+        $locations = [];
+
+        $fileIdCons = [];
+        foreach ($outgoingCons as [$cons, $id, $fileref]) {
+            $fileIdCons[$cons] = true;
+            $locations[] = [
+                '_' => 'locationOutgoing',
+                'predicate' => $cons,
+                'id_field' => $id,
+                'file_reference_field' => $fileref,
+            ];
+        }
+        foreach ($incomingCons as [$cons]) {
+            $fileIdCons[$cons] = true;
+            $locations[] = [
+                '_' => 'locationIncoming',
+                'predicate' => $cons,
+                'id_field' => $id,
+                'file_reference_field' => $fileref,
+                'stored_constructor' => $cons,
+            ];
+        }
         $dbSchema = '';
+        foreach ($fileIdCons as $cons => $_) {
+            $dbSchema .= "$cons id:long = FileId;\n";
+        }
+        $dbSchema .= "\n";
+
         foreach ($this->outputSchema as $constructor => $params) {
             $dbSchema .= self::stringifySchema($constructor, $params)."\n";
         }
@@ -76,6 +103,7 @@ final class Ast implements BuildMode
             '_' => 'fileReferenceOrigins',
             'db_schema' => $dbSchema,
             'db_schema_json' => json_encode($dbSchemaJSON, flags: JSON_THROW_ON_ERROR),
+            'locations' => $locations,
             'origins' => $this->output,
             'skipped' => $this->skipped,
             'actions' => $actions,
