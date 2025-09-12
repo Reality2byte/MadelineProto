@@ -4,6 +4,7 @@ use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\Request;
 use danog\MadelineProto\API;
 use danog\MadelineProto\Logger;
+use danog\MadelineProto\Magic;
 use danog\MadelineProto\PTSException;
 use danog\MadelineProto\RPCErrorException;
 use danog\MadelineProto\Settings;
@@ -59,6 +60,10 @@ function getTL(TLSchema $schema)
 $schema = getTLSchema();
 $layer = getTL($schema);
 $res = '';
+
+Magic::start(true);
+RPCErrorException::$errorMethodMap = [];
+RPCErrorException::$descriptions = [];
 
 $auth = '';
 try {
