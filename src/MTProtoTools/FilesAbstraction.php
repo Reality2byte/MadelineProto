@@ -1169,7 +1169,93 @@ trait FilesAbstraction
             scheduleDate: $scheduleDate,
             sendAs: $sendAs,
             forceResend: $forceResend,
-            cancellation: $cancellation
+            cancellation: $cancellation,
+            uploadOnly: false,
+        );
+    }
+    /**
+     * Uploads an audio without actually sending it.
+     *
+     * Please use named arguments to call this method.
+     *
+     * @param Message|Media|LocalFile|RemoteUrl|BotApiFileId|ReadableStream $file                   File to upload: can be a message to reuse media present in a message.
+     * @param Message|Media|LocalFile|RemoteUrl|BotApiFileId|ReadableStream|null $thumb                  Optional: Thumbnail to upload
+     * @param integer|string|null                                                $peer                   Optional: associate the audio to the specified peer or username.
+     * @param string                                                        $caption                Caption of document
+     * @param ParseMode                                                     $parseMode              Text parse mode for the caption
+     * @param ?callable(float, float, int)                                  $callback               Upload callback (percent, speed in mpbs, time elapsed)
+     * @param ?string                                                       $fileName               Optional file name, if absent will be extracted from the passed $file.
+     * @param integer|null                                                  $duration                Duration of the audio
+     * @param string|null                                                   $title                   Title of the audio
+     * @param string|null                                                   $performer               Performer of the audio
+     * @param integer|null                                                  $replyToMsgId            ID of message to reply to.
+     * @param integer|null                                                  $topMsgId                ID of thread where to send the message.
+     * @param array|null                                                    $replyMarkup             Keyboard information.
+     * @param integer|string|null                                           $sendAs                 Peer to send the message as.
+     * @param integer|null                                                  $scheduleDate            Schedule date.
+     * @param boolean                                                       $silent                  Whether to send the message silently, without triggering notifications.
+     * @param boolean                                                       $noForwards              Whether to disable forwards for this message.
+     * @param boolean                                                       $background              Send this message as background message
+     * @param boolean                                                       $clearDraft              Clears the draft field
+     * @param boolean                                                       $forceResend             Whether to forcefully resend the file, even if its type and name are the same.
+     * @param ?Cancellation                                                  $cancellation            Cancellation.
+     *
+     */
+    public function uploadAudio(
+        Message|Media|LocalFile|RemoteUrl|BotApiFileId|ReadableStream $file,
+        Message|Media|LocalFile|RemoteUrl|BotApiFileId|ReadableStream|null $thumb = null,
+        int|string|null $peer = null,
+        string $caption = '',
+        ParseMode $parseMode = ParseMode::TEXT,
+        ?callable $callback = null,
+        ?string $fileName = null,
+        ?string $mimeType = null,
+        ?int $duration = null,
+        ?string $title = null,
+        ?string $performer = null,
+        ?int $ttl = null,
+        ?int $replyToMsgId = null,
+        ?int $topMsgId = null,
+        ?array $replyMarkup = null,
+        int|string|null $sendAs = null,
+        ?int $scheduleDate = null,
+        bool $silent = false,
+        bool $noForwards = false,
+        bool $background = false,
+        bool $clearDraft = false,
+        bool $forceResend = false,
+        ?Cancellation $cancellation = null,
+    ): Media {
+        return $this->sendMedia(
+            type: Audio::class,
+            mimeType: $mimeType,
+            thumb: $thumb,
+            attributesOrig: [
+                'duration' => $duration,
+                'title' => $title,
+                'performer' => $performer,
+            ],
+            peer: $peer,
+            file: $file,
+            caption: $caption,
+            parseMode: $parseMode,
+            callback: $callback,
+            fileName: $fileName,
+            ttl: $ttl,
+            spoiler: false,
+            silent: $silent,
+            background: $background,
+            clearDraft: $clearDraft,
+            noForwards: $noForwards,
+            updateStickersetsOrder: false,
+            replyToMsgId: $replyToMsgId,
+            topMsgId: $topMsgId,
+            replyMarkup: $replyMarkup,
+            scheduleDate: $scheduleDate,
+            sendAs: $sendAs,
+            forceResend: $forceResend,
+            cancellation: $cancellation,
+            uploadOnly: true
         );
     }
     /**
@@ -1250,20 +1336,103 @@ trait FilesAbstraction
             scheduleDate: $scheduleDate,
             sendAs: $sendAs,
             forceResend: $forceResend,
-            cancellation: $cancellation
+            cancellation: $cancellation,
+            uploadOnly: false,
+        );
+    }
+    /**
+     * Uploads a voice without actually sending it to the chat.
+     *
+     * Please use named arguments to call this method.
+     *
+     * @param Message|Media|LocalFile|RemoteUrl|BotApiFileId|ReadableStream $file                   File to upload: can be a message to reuse media present in a message.
+     * @param integer|string|null                                                $peer                   Optional: associate the media to the specified peer or username.
+     * @param string                                                        $caption                Caption of document
+     * @param ParseMode                                                     $parseMode              Text parse mode for the caption
+     * @param ?callable(float, float, int)                                  $callback               Upload callback (percent, speed in mpbs, time elapsed)
+     * @param ?string                                                       $fileName               Optional file name, if absent will be extracted from the passed $file.
+     * @param integer|null                                                  $ttl                     Time to live
+     * @param integer|null                                                  $duration                Duration of the voice
+     * @param array|null                                                    $waveform                Waveform of the voice
+     * @param integer|null                                                  $replyToMsgId            ID of message to reply to.
+     * @param integer|null                                                  $topMsgId                ID of thread where to send the message.
+     * @param array|null                                                    $replyMarkup             Keyboard information.
+     * @param integer|string|null                                           $sendAs                 Peer to send the message as.
+     * @param integer|null                                                  $scheduleDate            Schedule date.
+     * @param boolean                                                       $silent                  Whether to send the message silently, without triggering notifications.
+     * @param boolean                                                       $noForwards              Whether to disable forwards for this message.
+     * @param boolean                                                       $background              Send this message as background message
+     * @param boolean                                                       $clearDraft              Clears the draft field
+     * @param boolean                                                       $forceResend             Whether to forcefully resend the file, even if its type and name are the same.
+     * @param ?Cancellation                                                  $cancellation            Cancellation.
+     *
+     */
+    public function uploadVoice(
+        int|string $peer,
+        Message|Media|LocalFile|RemoteUrl|BotApiFileId|ReadableStream $file,
+        string $caption = '',
+        ParseMode $parseMode = ParseMode::TEXT,
+        ?callable $callback = null,
+        ?string $fileName = null,
+        ?int $ttl = null,
+        ?int $duration = null,
+        ?array $waveform = null,
+        ?int $replyToMsgId = null,
+        ?int $topMsgId = null,
+        ?array $replyMarkup = null,
+        int|string|null $sendAs = null,
+        ?int $scheduleDate = null,
+        bool $silent = false,
+        bool $noForwards = false,
+        bool $background = false,
+        bool $clearDraft = false,
+        bool $forceResend = false,
+        ?Cancellation $cancellation = null,
+    ): Media {
+        $attributes = [
+            'duration' => $duration,
+            'waveform' => $waveform,
+        ];
+
+        return $this->sendMedia(
+            type: Voice::class,
+            mimeType: 'audio/ogg',
+            thumb: null,
+            attributesOrig: $attributes,
+            peer: $peer,
+            file: $file,
+            caption: $caption,
+            parseMode: $parseMode,
+            callback: $callback,
+            fileName: $fileName,
+            ttl: $ttl,
+            spoiler: false,
+            silent: $silent,
+            background: $background,
+            clearDraft: $clearDraft,
+            noForwards: $noForwards,
+            updateStickersetsOrder: false,
+            replyToMsgId: $replyToMsgId,
+            topMsgId: $topMsgId,
+            replyMarkup: $replyMarkup,
+            scheduleDate: $scheduleDate,
+            sendAs: $sendAs,
+            forceResend: $forceResend,
+            cancellation: $cancellation,
+            uploadOnly: true,
         );
     }
     /**
      * Sends a media.
      *
      * @param class-string<Media> $type
-     * 
+     *
      * @return $uploadOnly ? Media : Message
      * @internal
      */
     public function sendMedia(
         string $type,
-        int|string $peer,
+        int|string|null $peer,
         ?string $mimeType,
         Message|Media|LocalFile|RemoteUrl|BotApiFileId|ReadableStream $file,
         Message|Media|LocalFile|RemoteUrl|BotApiFileId|ReadableStream|null $thumb,
@@ -1295,7 +1464,13 @@ trait FilesAbstraction
             }
         }
 
-        $peer = $this->getId($peer);
+        if ($peer === null) {
+            if (!$uploadOnly) {
+                throw new AssertionError("A peer must be provided when sending a media!");
+            }
+        } else {
+            $peer = $this->getId($peer);
+        }
         if ($file instanceof Media) {
             $fileName ??= $file->fileName;
         } elseif ($file instanceof LocalFile) {
@@ -1388,8 +1563,10 @@ trait FilesAbstraction
         }
         $attributes[] = ['_' => 'documentAttributeFilename', 'file_name' => $fileName];
 
-        if (DialogId::isSecretChat($peer)) {
-            $method = 'messages.uploadEncryptedFile';
+        if ($peer !== null && DialogId::isSecretChat($peer)) {
+            if ($uploadOnly) {
+                throw new AssertionError("Cannot upload media without sending it when working with secret chats, use the send* variant instead!");
+            }
             $message = [
                 '_' => 'decryptedMessage',
                 'ttl' => $ttl,
@@ -1524,133 +1701,131 @@ trait FilesAbstraction
                 'file' => $file,
                 'cancellation' => $cancellation,
             ];
-            $res = $this->methodCallAsyncRead(
-                $method,
+            $res = $this->wrapMessage($this->extractMessage($this->methodCallAsyncRead(
+                'messages.sendEncryptedFile',
                 $params
-            );
-            $params['file'] = $res;
-        } else {
-
-            if ($reuseId) {
-                // Reuse
-            } elseif ($type === Video::class || $type === Gif::class) {
-                $this->extractVideoInfo(false, $attributesOrig['thumbSeek'], $file, $fileName, $callback, $cancellation, $mimeType, $attributes, $thumb);
-            } elseif ($type === Audio::class || $type === Voice::class) {
-                $this->extractAudioInfo(false, $file, $fileName, $callback, $cancellation, $mimeType, $attributes, $thumb);
-            } elseif ($mimeType === null) {
-                $mimeType = $this->extractMime(false, $file, $fileName, $callback, $cancellation);
-            }
-
-            if ($type === DocumentPhoto::class) {
-                $attributes []= [
-                    '_' => 'documentAttributeImageSize',
-                ];
-            }
-
-            $method = 'messages.uploadMedia';
-            $media = match ($type) {
-                Photo::class => [
-                    '_' => 'inputMediaUploadedPhoto',
-                    'spoiler' => $spoiler,
-                    'file' => $file,
-                    'ttl_seconds' => $ttl,
-                ],
-                Sticker::class => [
-                    '_' => 'inputMediaUploadedDocument',
-                    'file' => $file,
-                    'mime_type' => $mimeType,
-                    'attributes' => $attributes,
-                ],
-                Video::class => [
-                    '_' => 'inputMediaUploadedDocument',
-                    'nosound_video' => $attributes[0]['no_sound'],
-                    'spoiler' => $spoiler,
-                    'ttl_seconds' => $ttl,
-                    'force_file' => false,
-                    'file' => $file,
-                    'thumb' => $thumb,
-                    'mime_type' => $mimeType,
-                    'attributes' => $attributes,
-                ],
-                Gif::class => [
-                    '_' => 'inputMediaUploadedDocument',
-                    'spoiler' => $spoiler,
-                    'ttl_seconds' => $ttl,
-                    'file' => $file,
-                    'thumb' => $thumb,
-                    'mime_type' => $mimeType,
-                    'attributes' => $attributes,
-                ],
-                Audio::class => [
-                    '_' => 'inputMediaUploadedDocument',
-                    'file' => $file,
-                    'thumb' => $thumb,
-                    'mime_type' => $mimeType,
-                    'attributes' => $attributes,
-                ],
-                Voice::class => [
-                    '_' => 'inputMediaUploadedDocument',
-                    'file' => $file,
-                    'mime_type' => $mimeType,
-                    'attributes' => $attributes,
-                ],
-                default => [
-                    '_' => 'inputMediaUploadedDocument',
-                    'spoiler' => $spoiler,
-                    'ttl_seconds' => $ttl,
-                    'force_file' => true,
-                    'file' => $file,
-                    'thumb' => $thumb,
-                    'mime_type' => $mimeType,
-                    'attributes' => $attributes,
-                ]
-            };
-            if ($reuseId) {
-                $media['_'] = match ($type) {
-                    Photo::class => 'inputMediaPhoto',
-                    default => 'inputMediaDocument',
-                };
-                $media['id'] = $reuseId;
-            } elseif (!\is_array($media['file'])) {
-                $media['file'] = $this->upload($media['file'], $fileName ?? '', $callback, cancellation: $cancellation);
-            }
-
-            $params = [
-                'silent' => $silent,
-                'background' => $background,
-                'clear_draft' => $clearDraft,
-                'noforwards' => $noForwards,
-                'update_stickersets_order' => $updateStickersetsOrder,
-                'peer' => $peer,
-                'reply_to' => $replyToMsgId !== null || $topMsgId !== null ? [
-                    '_' => 'inputReplyToMessage',
-                    'reply_to_msg_id' => $replyToMsgId,
-                    'top_msg_id' => $topMsgId,
-                ] : null,
-                'message' => $caption,
-                'reply_markup' => $replyMarkup,
-                'parse_mode' => $parseMode,
-                'schedule_date' => $scheduleDate,
-                'send_as' => $sendAs,
-                'media' => $media,
-                'cancellation' => $cancellation,
-            ];
-            $res = $this->methodCallAsyncRead(
-                $method,
-                $params
-            );
-            $params['media'] = $res;
+            )));
+            \assert($res !== null);
+            return $res;
+        }
+        if ($reuseId) {
+            // Reuse
+        } elseif ($type === Video::class || $type === Gif::class) {
+            $this->extractVideoInfo(false, $attributesOrig['thumbSeek'], $file, $fileName, $callback, $cancellation, $mimeType, $attributes, $thumb);
+        } elseif ($type === Audio::class || $type === Voice::class) {
+            $this->extractAudioInfo(false, $file, $fileName, $callback, $cancellation, $mimeType, $attributes, $thumb);
+        } elseif ($mimeType === null) {
+            $mimeType = $this->extractMime(false, $file, $fileName, $callback, $cancellation);
         }
 
+        if ($type === DocumentPhoto::class) {
+            $attributes []= [
+                '_' => 'documentAttributeImageSize',
+            ];
+        }
+
+        $media = match ($type) {
+            Photo::class => [
+                '_' => 'inputMediaUploadedPhoto',
+                'spoiler' => $spoiler,
+                'file' => $file,
+                'ttl_seconds' => $ttl,
+            ],
+            Sticker::class => [
+                '_' => 'inputMediaUploadedDocument',
+                'file' => $file,
+                'mime_type' => $mimeType,
+                'attributes' => $attributes,
+            ],
+            Video::class => [
+                '_' => 'inputMediaUploadedDocument',
+                'nosound_video' => $attributes[0]['no_sound'],
+                'spoiler' => $spoiler,
+                'ttl_seconds' => $ttl,
+                'force_file' => false,
+                'file' => $file,
+                'thumb' => $thumb,
+                'mime_type' => $mimeType,
+                'attributes' => $attributes,
+            ],
+            Gif::class => [
+                '_' => 'inputMediaUploadedDocument',
+                'spoiler' => $spoiler,
+                'ttl_seconds' => $ttl,
+                'file' => $file,
+                'thumb' => $thumb,
+                'mime_type' => $mimeType,
+                'attributes' => $attributes,
+            ],
+            Audio::class => [
+                '_' => 'inputMediaUploadedDocument',
+                'file' => $file,
+                'thumb' => $thumb,
+                'mime_type' => $mimeType,
+                'attributes' => $attributes,
+            ],
+            Voice::class => [
+                '_' => 'inputMediaUploadedDocument',
+                'file' => $file,
+                'mime_type' => $mimeType,
+                'attributes' => $attributes,
+            ],
+            default => [
+                '_' => 'inputMediaUploadedDocument',
+                'spoiler' => $spoiler,
+                'ttl_seconds' => $ttl,
+                'force_file' => true,
+                'file' => $file,
+                'thumb' => $thumb,
+                'mime_type' => $mimeType,
+                'attributes' => $attributes,
+            ]
+        };
+        if ($reuseId) {
+            $media['_'] = match ($type) {
+                Photo::class => 'inputMediaPhoto',
+                default => 'inputMediaDocument',
+            };
+            $media['id'] = $reuseId;
+        } elseif (!\is_array($media['file'])) {
+            $media['file'] = $this->upload($media['file'], $fileName ?? '', $callback, cancellation: $cancellation);
+        }
+
+        $params = [
+            'silent' => $silent,
+            'background' => $background,
+            'clear_draft' => $clearDraft,
+            'noforwards' => $noForwards,
+            'update_stickersets_order' => $updateStickersetsOrder,
+            'peer' => $peer,
+            'reply_to' => $replyToMsgId !== null || $topMsgId !== null ? [
+                '_' => 'inputReplyToMessage',
+                'reply_to_msg_id' => $replyToMsgId,
+                'top_msg_id' => $topMsgId,
+            ] : null,
+            'message' => $caption,
+            'reply_markup' => $replyMarkup,
+            'parse_mode' => $parseMode,
+            'schedule_date' => $scheduleDate,
+            'send_as' => $sendAs,
+            'media' => $media,
+            'cancellation' => $cancellation,
+        ];
+        $res = $this->methodCallAsyncRead(
+            'messages.uploadMedia',
+            $params
+        );
+        $params['media'] = $res;
         if ($uploadOnly) {
             return $this->wrapMedia($res);
         }
         $res = $this->wrapMessage($this->extractMessage($this->methodCallAsyncRead(
-            $method,
+            'messages.sendMedia',
             $params
         )));
         \assert($res !== null);
         return $res;
+
     }
 
     private function extractMime(bool $secret, Message|Media|LocalFile|RemoteUrl|BotApiFileId|ReadableStream &$file, ?string $fileName, ?callable $callback, ?Cancellation $cancellation): string
