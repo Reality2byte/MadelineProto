@@ -224,10 +224,12 @@ final class Ast implements BuildMode
                 // aka the source_constructor will always be of the same type, it should have all
                 // needed flags, and the behavior will be consistent.
                 if ($action['_'] === 'getMessageOp') {
-                    if (!isset($existingAction['from_scheduled']) && isset($action['from_scheduled'])) {
-                        $existingAction['from_scheduled'] = $action['from_scheduled'];
-                    } elseif (isset($existingAction['from_scheduled']) && !isset($action['from_scheduled'])) {
-                        $action['from_scheduled'] = $existingAction['from_scheduled'];
+                    foreach (['from_scheduled', 'quick_reply_shortcut_id'] as $k) {
+                        if (!isset($existingAction[$k]) && isset($action[$k])) {
+                            $existingAction[$k] = $action[$k];
+                        } elseif (isset($existingAction[$k]) && !isset($action[$k])) {
+                            $action[$k] = $existingAction[$k];
+                        }
                     }
                 } else {
                     Assert::eq($action['_'], 'callOp');

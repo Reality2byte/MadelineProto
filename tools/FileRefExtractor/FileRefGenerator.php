@@ -68,6 +68,7 @@ final class FileRefGenerator
                 new GetInputPeerOp(new Path([[$constructor, 'peer_id']])),
                 new CopyOp([[$constructor, 'id']]),
                 $constructor === 'message' ? new CopyOp([[$constructor, 'from_scheduled', Path::FLAG_PASSTHROUGH]]) : null,
+                $constructor === 'message' ? new CopyOp([[$constructor, 'quick_reply_shortcut_id', Path::FLAG_PASSTHROUGH]]) : null,
                 'fileSourceMessage',
             );
         }
@@ -486,6 +487,7 @@ final class FileRefGenerator
             'fileSourceMessage' => [
                 'flags' => '#',
                 'from_scheduled' => 'flags.0?true',
+                'quick_reply_shortcut_id' => 'flags.1?int',
                 'peer' => 'long',
                 'id' => 'int',
             ],
@@ -547,13 +549,14 @@ final class FileRefGenerator
             }
         }
 
+        $traversalPairs = [];
         $tmp = new Ast(blacklistedPredicates: $blacklistedPredicates, allowUnpacking: true, outputSchema: $pre);
         foreach ($incomingCons as $constructor => $_) {
             $type = ucfirst($constructor);
             $stack = [[$constructor, 'file_reference']];
             $stackTypes = [$type => 1];
             $recurse(
-                static function (array $stack) use ($locations, $TL, $tmp, &$validated, $storyMethods, $starMethods, $stickerMethods): void {
+                static function (array $stack) use ($locations, $TL, $tmp, &$traversalPairs, &$validated, $storyMethods, $starMethods, $stickerMethods): void {
                     $slice = [];
                     $hadAny = false;
                     $hadAnyWithNoFlags = false;
@@ -561,6 +564,7 @@ final class FileRefGenerator
                     $top = end($stack)[0];
                     for ($x = \count($stack)-1; $x >= 0; $x--) {
                         $pair = $stack[$x];
+                        //$traversalPairs[json_encode($pair)] = $pair;
                         foreach ($locations[$pair[0]] ?? [] as $op) {
                             $normalized = $op->normalize($slice, $pair[0], false);
                             if ($normalized === null) {
@@ -582,10 +586,7 @@ final class FileRefGenerator
                     if (!$hadAny) {
                         throw new AssertionError("Uncovered path: " . json_encode($stack));
                     }
-                    if ($hadAnyWithNoFlags) {
-                        return;
-                    }
-                    if ($skippedDueToFlags) {
+                    if (!$hadAnyWithNoFlags && $skippedDueToFlags) {
                         if ($top === 'updateStory'
                             || $top === 'peerStories'
                             // The two above always have the story peer flag set.
@@ -629,6 +630,7 @@ final class FileRefGenerator
                 $stackTypes,
             );
         }
+        //var_dump(array_values($traversalPairs));
 
         $diff = [];
         foreach ($locations as $constructor => $ops) {

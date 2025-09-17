@@ -29,6 +29,7 @@ final readonly class GetMessageOp implements ActionOp
         private readonly TypedOp $peer,
         private readonly TypedOp $id,
         private readonly ?TypedOp $fromScheduled,
+        private readonly ?TypedOp $quickReplyShortcutId,
         private readonly string $stored_constructor
     ) {
     }
@@ -46,8 +47,12 @@ final readonly class GetMessageOp implements ActionOp
         if ($fromScheduled === null && $this->fromScheduled !== null) {
             return null;
         }
-        if ($peer !== $this->peer || $id !== $this->id || $fromScheduled !== $this->fromScheduled) {
-            return new self($peer, $id, $fromScheduled, $this->stored_constructor);
+        $quickReplyShortcutId = $this->quickReplyShortcutId?->normalize($stack, $current, $ignoreFlag);
+        if ($quickReplyShortcutId === null && $this->quickReplyShortcutId !== null) {
+            return null;
+        }
+        if ($peer !== $this->peer || $id !== $this->id || $fromScheduled !== $this->fromScheduled || $quickReplyShortcutId !== $this->quickReplyShortcutId) {
+            return new self($peer, $id, $fromScheduled, $quickReplyShortcutId, $this->stored_constructor);
         }
         return $this;
     }
@@ -63,9 +68,15 @@ final readonly class GetMessageOp implements ActionOp
         if ($this->fromScheduled !== null) {
             Assert::eq($this->fromScheduled->getType($tl), 'true');
         }
+        if ($this->quickReplyShortcutId !== null) {
+            Assert::eq($this->quickReplyShortcutId->getType($tl), 'int');
+        }
         $extra = [];
         if ($this->fromScheduled !== null) {
             $extra['from_scheduled'] = $tl->build($this->fromScheduled, 'from_scheduled');
+        }
+        if ($this->quickReplyShortcutId !== null) {
+            $extra['quick_reply_shortcut_id'] = $tl->build($this->quickReplyShortcutId, 'quick_reply_shortcut_id');
         }
         $tl->buildMode->addNode($tl, [
             '_' => 'getMessageOp',
