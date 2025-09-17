@@ -559,17 +559,22 @@ final class FileRefGenerator
                 static function (array $stack) use ($locations, $TL, $tmp, &$traversalPairs, &$validated, $storyMethods, $starMethods, $stickerMethods): void {
                     $slice = [];
                     $hadAny = false;
+                    $hadAnyNotNoop = false;
+                    $tmpPairs = [];
                     $hadAnyWithNoFlags = false;
                     $skippedDueToFlags = [];
                     $top = end($stack)[0];
                     for ($x = \count($stack)-1; $x >= 0; $x--) {
                         $pair = $stack[$x];
-                        //$traversalPairs[json_encode($pair)] = $pair;
                         foreach ($locations[$pair[0]] ?? [] as $op) {
                             $normalized = $op->normalize($slice, $pair[0], false);
                             if ($normalized === null) {
                                 continue;
                             }
+                            if (!$normalized instanceof Noop) {
+                                $hadAnyNotNoop = true;
+                            }
+                            $tmpPairs[json_encode($pair)] = $pair;
                             $hadAny = true;
                             $normalized->build(new TLContext($TL, $tmp, $top, $TL->isConstructor($top)));
                             $validated[$pair[0]][spl_object_id($op)] = $op;
@@ -582,6 +587,9 @@ final class FileRefGenerator
                             $hadAnyWithNoFlags = true;
                         }
                         $slice[] = $pair;
+                    }
+                    if ($hadAnyNotNoop) {
+                        $traversalPairs += $tmpPairs;
                     }
                     if (!$hadAny) {
                         throw new AssertionError("Uncovered path: " . json_encode($stack));
