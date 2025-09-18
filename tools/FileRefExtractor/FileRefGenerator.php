@@ -397,7 +397,7 @@ final class FileRefGenerator
             $locations['document'][] = new CallOp(
                 'users.getSavedMusicByID',
                 [
-                    'id' => new GetInputUserOp(new Path([[$m, 'id']], true)),
+                    'id' => new GetInputUserOp(new Path([[$m, 'id']], true, 'user_id')),
                     'documents' => new ArrayOp(
                         new ConstructorOp(
                             'inputDocument',
@@ -412,6 +412,23 @@ final class FileRefGenerator
                 'fileSourceSavedMusic'
             );
         }
+        $locations['userFull'][] = new CallOp(
+            'users.getSavedMusicByID',
+            [
+                'id' => new GetInputUserOp(new Path([['userFull', 'id']], customName: 'user_id')),
+                'documents' => new ArrayOp(
+                    new ConstructorOp(
+                        'inputDocument',
+                        [
+                            'id' => new CopyOp([['userFull', 'saved_music', Path::FLAG_IF_ABSENT_ABORT], ['document', 'id']]),
+                            'access_hash' => new CopyOp([['userFull', 'saved_music', Path::FLAG_IF_ABSENT_ABORT], ['document', 'access_hash']]),
+                            'file_reference' => new PrimitiveLiteralOp('bytes', ''),
+                        ],
+                    ),
+                ),
+            ],
+            'fileSourceSavedMusic'
+        );
 
         // Ignore these for now
         foreach (['payments.ResaleStarGifts', 'payments.StarGiftUpgradePreview', 'StarGift', 'StarGiftCollection', 'payments.StarGiftCollections'] as $type) {

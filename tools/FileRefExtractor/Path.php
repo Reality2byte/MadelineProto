@@ -32,6 +32,7 @@ final readonly class Path
         /** @var list<list{0: string, 1: string, 2?: int-mask-of<self::FLAG_*>|TypedOp}> */
         public array $path,
         public bool $isFromParent = false,
+        private ?string $customName = null,
     ) {
         foreach ($path as $k => $elem) {
             if (\count($elem) !== 2 && \count($elem) !== 3) {
@@ -74,7 +75,7 @@ final readonly class Path
         if ($this->isFromParent) {
             // From parent
             if ($stack[0][0] === $this->path[0][0]) {
-                return new static($new, true);
+                return new self($new, true, $this->customName);
             }
             return null;
         }
@@ -82,6 +83,7 @@ final readonly class Path
         return new self(
             [...$stack, ...$new],
             false,
+            $this->customName
         );
     }
 
@@ -164,12 +166,7 @@ final readonly class Path
                 $flag = $tl->buildMode->storedFlags++;
                 $type = "flags.$flag?$type";
             }
-            $name = $tl->buildMode->curKey;
-            if (\in_array($this->path[0][0], ['users.getSavedMusic', 'users.getSavedMusicByID'], true)
-                && $this->path[0][1] === 'id'
-            ) {
-                $name = 'user_id';
-            }
+            $name = $this->customName ?? $tl->buildMode->curKey;
             Assert::notNull($name);
             if (isset($tl->buildMode->stored[$name])) {
                 throw new AssertionError("Need custom name (already have $name) for ".json_encode($this->path));
