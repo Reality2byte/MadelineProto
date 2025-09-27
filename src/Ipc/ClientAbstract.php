@@ -129,6 +129,7 @@ abstract class ClientAbstract
                             $this->server->send([$function, $arguments]);
                         }
                         $f->complete();
+                        $this->serverFuture = null;
                     } catch (Throwable $e) {
                         $f->error($e);
                         throw $e;
