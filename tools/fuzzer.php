@@ -113,7 +113,9 @@ $user->restart();
 $user->getSelf();
 $bot->getSelf();
 
-$toggleBusiness = static function (bool $enable) use ($user, $bot): void {
+$cId = null;
+
+$toggleBusiness = static function (bool $enable) use ($user, $bot, &$cId): void {
     $bot->getUpdates();
 
     Logger::log($enable ? "Initializing business connection..." : "Deinitializing business connection...");
