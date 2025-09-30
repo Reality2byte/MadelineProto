@@ -173,11 +173,12 @@ function call(API $API, string $method, array $args = []): void
 
 $methods = [];
 
-$wait = static function () use (&$methods): void {
-    if (count($methods) >= 10) {
+$wait = static function (bool $force = false) use (&$methods): void {
+    if (count($methods) >= 10 || $force) {
         Logger::log("Processing ".implode(", ", array_keys($methods)));
         await($methods);
         Logger::log("Done!");
+        Assert::isEmpty($methods, "Some methods were not processed!");
     }
 };
 
@@ -262,6 +263,8 @@ foreach ($names as $name) {
     $wait();
 }
 
+$wait(true);
+
 $toggleBusiness(false);
 
 foreach ($names as $name) {
@@ -270,16 +273,13 @@ foreach ($names as $name) {
             call($bot, $name);
         } catch (RPCErrorException|PTSException) {
         }
-        unset($methods["bot $name"]);
+        unset($methods["bot disconnected $name"]);
     });
 
     $wait();
 }
 
-Logger::log("Processing ".implode(", ", array_keys($methods)));
-await($methods);
-Logger::log("Done!");
-Assert::isEmpty($methods, "Some methods were not processed!");
+$wait(true);
 
 unset($bot, $user, $unauthed);
 
