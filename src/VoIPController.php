@@ -33,6 +33,7 @@ use danog\MadelineProto\VoIP\CallState;
 use danog\MadelineProto\VoIP\DiscardReason;
 use danog\MadelineProto\VoIP\Endpoint;
 use danog\MadelineProto\VoIP\MessageHandler;
+use danog\MadelineProto\VoIP\SignalingProtocolVersion;
 use danog\MadelineProto\VoIP\VoIPState;
 use phpseclib3\Math\BigInteger;
 use Revolt\EventLoop;
@@ -62,8 +63,8 @@ final class VoIPController
             "8.0.0",
             "9.0.0",
             "10.0.0",
-            "11.0.0"
-        ]*/
+            "11.0.0",
+        ],*/
     ];
     public const NET_TYPE_UNKNOWN = 0;
     public const NET_TYPE_GPRS = 1;
@@ -126,6 +127,7 @@ final class VoIPController
     private CallState $callState;
 
     private array $call;
+    private ?SignalingProtocolVersion $tgcallsVersion = null;
 
     /**
      * @var array<Endpoint>
@@ -263,6 +265,7 @@ final class VoIPController
             }
             $this->visualization = $visualization;
             $this->authKey = $key;
+            $this->tgcallsVersion = SignalingProtocolVersion::fromProtocol($params['protocol']);
             $this->callState = CallState::RUNNING;
             $this->messageHandler = new MessageHandler(
                 $this,
@@ -333,6 +336,8 @@ final class VoIPController
             if ($this->callState !== CallState::ACCEPTED) {
                 return false;
             }
+            $this->tgcallsVersion = SignalingProtocolVersion::fromProtocol($params['protocol']);
+
             $this->log(sprintf(Lang::$current_lang['call_completing'], $this->public->otherID), Logger::VERBOSE);
             $dh_config = $this->API->getDhConfig();
             if (hash('sha256', (string) $params['g_a_or_b'], true) !== (string) $this->call['g_a_hash']) {
@@ -424,11 +429,37 @@ final class VoIPController
 
     private const SIGNALING_MIN_SIZE = 21;
     private const SIGNALING_MAX_SIZE = 128 * 1024 * 1024;
+
+    private const SINGLE_MESSAGE_PACKET_BIT = 1 << 31;
+    private const MESSAGE_REQUIRES_ACK_SEQ_BIT = 1 << 30;
+
+    private const MAX_ALLOWED_COUNTER = ~self::SINGLE_MESSAGE_PACKET_BIT
+        & ~self::MESSAGE_REQUIRES_ACK_SEQ_BIT;
+
+    public const ACK_ID = 255;
+    public const EMPTY_ID = 254;
+    public const CUSTOM_ID = 127;
+
+    private static function gunzip(string $data): string
+    {
+        if (\strlen($data) < 2) {
+            return $data;
+        }
+
+        if (($data[0] == \chr(0x1f) && $data[1] == \chr(0x8b)) || ($data[0] == \chr(0x78) && $data[1] == \chr(0x9c))) {
+            return gzdecode($data);
+        }
+        return $data;
+
+    }
+
     public function onSignaling(string $data): void
     {
+        if ($this->tgcallsVersion === null) {
+            throw new Exception('Protocol version is not set!');
+        }
         if (\strlen($data) < self::SIGNALING_MIN_SIZE || \strlen($data) > self::SIGNALING_MAX_SIZE) {
-            Logger::log('Wrong size in signaling!', Logger::ERROR);
-            return;
+            throw new Exception('Invalid signaling size!');
         }
         $message_key = substr($data, 0, 16);
         $data = substr($data, 16);
@@ -436,23 +467,79 @@ final class VoIPController
         $packet = Crypt::ctrEncrypt($data, $aes_key, $aes_iv);
 
         if ($message_key != substr(hash('sha256', substr($this->authKey, 88 + $x, 32).$packet, true), 8, 16)) {
-            Logger::log('msg_key mismatch!', Logger::ERROR);
+            throw new Exception('msg_key mismatch!');
+        }
+        if (\strlen($packet) < self::SIGNALING_MIN_SIZE || \strlen($packet) > self::SIGNALING_MAX_SIZE) {
+            throw new Exception('Invalid signaling size!');
+        }
+
+        if ($this->tgcallsVersion->supportsCompression()) {
+            $packet = self::gunzip($packet);
+
+            $seq = unpack('N', substr($packet, 0, 4))[1];
+
+            $this->onSignalingMessage($this->deserializeRtc(null, substr($packet, 4)));
             return;
         }
 
         $packet = new BufferedReader(new ReadableBuffer($packet));
 
-        $packets = [];
+        $first = true;
         while ($packet->isReadable()) {
             $seq = unpack('N', $packet->readLength(4))[1];
-            $length = unpack('N', $packet->readLength(4))[1];
-            $packets []= self::deserializeRtc($packet);
+            $messageRequiresAck = (bool) ($seq & self::MESSAGE_REQUIRES_ACK_SEQ_BIT);
+            $singlePacketFlag = (bool) ($seq & self::SINGLE_MESSAGE_PACKET_BIT);
+
+            if (!$first && $singlePacketFlag) {
+                throw new Exception('Single packet flag can only be set on first message!');
+            }
+
+            $type = \ord($packet->readLength(1));
+            if ($type === self::EMPTY_ID) {
+                if (!$first) {
+                    throw new Exception('Empty packet can only be first message!');
+                }
+            } elseif ($type === self::ACK_ID) {
+                // todo ack $seq (contains my seq to be acked)
+            } else {
+                $length = unpack('N', $packet->readLength(4))[1];
+                if ($length > 1024 * 1024) {
+                    throw new Exception('Invalid signaling message length!');
+                }
+                $str = $packet->readLength($length);
+                if (\strlen($str) !== $length) {
+                    throw new Exception('Signaling message is shorter than expected!');
+                }
+
+                $this->onSignalingMessage($this->deserializeRtc($type, $str));
+            }
+            $first = false;
+        }
+
+    }
+    private function onSignalingMessage(array $message): void
+    {
+        if ($this->tgcallsVersion->isJson()) {
+            $this->onSignalingMessageJson($message);
+            return;
         }
     }
 
-    public static function deserializeRtc(BufferedReader $buffer): array
+    private function onSignalingMessageJson(array $message): void
     {
-        switch ($t = \ord($buffer->readLength(1))) {
+        $type = $message['@type'];
+        if ($type === 'Candidates') {
+            $sdps = array_column($message['candidates'], 'sdpString');
+
+        }
+    }
+    private function deserializeRtc(?int $type, string $buffer): array
+    {
+        if ($this->tgcallsVersion->isJson()) {
+            return json_decode($buffer, true, flags: JSON_THROW_ON_ERROR);
+        }
+        $buffer = new BufferedReader(new ReadableBuffer($buffer));
+        switch ($type) {
             case 1:
                 $candidates = [];
                 for ($x = \ord($buffer->readLength(1)); $x > 0; $x--) {
@@ -503,7 +590,7 @@ final class VoIPController
                 $isLowDataRequested = (bool) \ord($buffer->readLength(1));
                 return ['_' => 'remoteNetworkStatus', 'lowCost' => $lowCost, 'isLowDataRequested' => $isLowDataRequested];
         }
-        return ['_' => 'unknown', 'type' => $t];
+        return ['_' => 'unknown', 'type' => $type];
     }
     private static function readString(BufferedReader $buffer): string
     {
