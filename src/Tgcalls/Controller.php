@@ -14,29 +14,27 @@
  * @link https://docs.madelineproto.xyz MadelineProto documentation
  */
 
-namespace danog\MadelineProto;
+// IMPORTANT NOTE: Please keep the above copyright notice intact if copying or rewriting this file in another language.
+
+namespace danog\MadelineProto\Tgcalls;
 
 use Amp\ByteStream\BufferedReader;
 use Amp\ByteStream\ReadableBuffer;
+use danog\MadelineProto\Exception;
+use danog\MadelineProto\MTProto;
 use danog\MadelineProto\MTProtoTools\Crypt;
 use danog\MadelineProto\VoIP\SignalingProtocolVersion;
+use Webrtc\DataChannel\RTCDataChannel;
+use Webrtc\DataChannel\RTCDataChannelParameters;
+use Webrtc\ICE\Enum\IceGatheringState;
 use Webrtc\ICE\RTCIceCandidate;
+use Webrtc\RTP\MediaStreamTrack\AudioStreamTrack;
 use Webrtc\Webrtc\RTCPeerConnection;
+
+use function React\Async\await;
 
 /** @internal */
 final class Controller {
-
-    private RTCPeerConnection $peerConnection;
-    public function __construct(
-        private readonly string $authKey,
-        private readonly bool $outgoing,
-        private readonly SignalingProtocolVersion $tgcallsVersion,
-        private readonly MTProto $API,
-    )
-    {
-        $this->peerConnection = new RTCPeerConnection();
-    }
-
 
     private const SIGNALING_MIN_SIZE = 21;
     private const SIGNALING_MAX_SIZE = 128 * 1024 * 1024;
@@ -51,19 +49,111 @@ final class Controller {
     public const EMPTY_ID = 254;
     public const CUSTOM_ID = 127;
 
-    private static function gunzip(string $data): string
+
+    private RTCPeerConnection $peerConnection;
+    private RTCDataChannel $dataChannel;
+
+    private int $remoteSeq = 0;
+    private int $localSeq = 0;
+
+    public function __construct(
+        private readonly string $authKey,
+        private readonly bool $outgoing,
+        private readonly SignalingProtocolVersion $tgcallsVersion,
+        private readonly MTProto $API,
+        array $connections
+    )
     {
-        if (\strlen($data) < 2) {
-            return $data;
+        $iceServers = [];
+        foreach ($connections as $connection) {
+            if ($connection['_'] !== 'phoneConnectionWebrtc') {
+                continue;
+            }
+            foreach ([
+                $connection['ip'],
+                '['.$connection['ipv6'].']',
+            ] as $ip) {
+                if ($connection['turn']) {
+                    $url = 'turn:'.$ip.':'.$connection['port'];
+                } elseif ($connection['stun']) {
+                    $url = 'stun:'.$ip.':'.$connection['port'];
+                } else {
+                    continue;
+                }
+                $iceServers[] = [
+                    'urls' => $url,
+                    'username' => $connection['username'],
+                    'credential' => $connection['password'],
+                    'credentialType' => 'password',
+                ];
+            }
+        }
+        $this->peerConnection = new RTCPeerConnection([
+            'iceServers' => $iceServers,
+        ]);
+        if ($this->outgoing) {
+            $this->dataChannel = $this->peerConnection->createDataChannel(new RTCDataChannelParameters(
+                "data"
+            ));
         }
 
-        if (($data[0] == \chr(0x1f) && $data[1] == \chr(0x8b)) || ($data[0] == \chr(0x78) && $data[1] == \chr(0x9c))) {
-            return gzdecode($data);
-        }
-        return $data;
+        $offer = await($this->peerConnection->createOffer());
+        await($this->peerConnection->setLocalDescription($offer));
+        
+        $this->sendSignalling([
+            'type' => $offer->getType(),
+            'sdp' => $offer->getSdp(),
+        ]);
 
+        $this->peerConnection->on('icegatheringstatechange', function () {
+            if ($this->peerConnection->getIceGatheringState() !== IceGatheringState::complete) {
+                return;
+            }
+
+            foreach ($this->peerConnection->getTransceivers() as $transceiver) {
+                $iceGatherer = $transceiver->getSender()->getTransport()->getIceTransport()->getIceGatherer();
+                $candidates = [];
+                foreach ($iceGatherer->getLocalCandidates() as $candidate) {
+                    $candidate->setSdpMid($transceiver->getMid());
+                    $candidates[] = [
+                        'sdpString' => $candidate->toSDP(),
+                    ];
+                }
+
+                $this->sendSignalling([
+                    '@type' => 'Candidates',
+                    'candidates' => $candidates,
+                ]);
+            }
+        });
     }
 
+
+    public function sendSignalling(array $message): void
+    {
+        $seq = $this->localSeq++;
+
+        $serialized = TgcallsTools::serializeRtc($this->tgcallsVersion, $message);
+        if ($this->tgcallsVersion->supportsCompression()) {
+            $serialized = TgcallsTools::gzip($serialized);
+        }
+        $serialized = pack('N', $seq).$serialized;
+
+        $serialized = $this->encryptPayload($serialized, false);
+    }
+
+    private function encryptPayload(string $serialized, bool $signaling): void
+    {
+        $x = Crypt::voipX(!$this->outgoing, $signaling);
+        $message_key_full = hash('sha256', substr($this->authKey, 88 + $x, 32).$serialized, true);
+        $message_key = substr($message_key_full, 8, 16);
+        [$aes_key, $aes_iv, $x] = Crypt::voipKdf($message_key, $this->authKey, $x);
+        $packet = Crypt::ctrEncrypt($serialized, $aes_key, $aes_iv);
+
+        $data = $message_key.$packet;
+
+        // send $data to peer
+    }
     public function onSignaling(string $data): void
     {
         if ($this->tgcallsVersion === null) {
@@ -74,7 +164,9 @@ final class Controller {
         }
         $message_key = substr($data, 0, 16);
         $data = substr($data, 16);
-        [$aes_key, $aes_iv, $x] = Crypt::voipKdf($message_key, $this->authKey, $this->outgoing, false);
+        
+        $x = Crypt::voipX($this->outgoing, true);
+        [$aes_key, $aes_iv, $x] = Crypt::voipKdf($message_key, $this->authKey, $x);
         $packet = Crypt::ctrEncrypt($data, $aes_key, $aes_iv);
 
         if ($message_key != substr(hash('sha256', substr($this->authKey, 88 + $x, 32).$packet, true), 8, 16)) {
@@ -85,11 +177,13 @@ final class Controller {
         }
 
         if ($this->tgcallsVersion->supportsCompression()) {
-            $packet = self::gunzip($packet);
+            $packet = TgcallsTools::gunzip($packet);
 
             $seq = unpack('N', substr($packet, 0, 4))[1];
 
-            $this->onSignalingMessage($this->deserializeRtc(null, substr($packet, 4)));
+            $this->onSignalingMessage(TgcallsTools::deserializeRtc(
+                $this->tgcallsVersion, null, substr($packet, 4)
+            ));
             return;
         }
 
@@ -122,7 +216,7 @@ final class Controller {
                     throw new Exception('Signaling message is shorter than expected!');
                 }
 
-                $this->onSignalingMessage($this->deserializeRtc($type, $str));
+                $this->onSignalingMessage(TgcallsTools::deserializeRtc($this->tgcallsVersion, $type, $str));
             }
             $first = false;
         }
@@ -141,80 +235,14 @@ final class Controller {
         $type = $message['@type'];
         if ($type === 'Candidates') {
             foreach ($message['candidates'] as ['sdpString' => $sdp]) {
-                $this->peerConnection->addIceCandidate(RTCIceCandidate::parseSDP($sdp));
+                $candidate = RTCIceCandidate::parseSDP($sdp);
+                $candidate->setSdpMid(0);
+                $this->peerConnection->addIceCandidate($candidate);
             }
             return;
         }
         var_dump($message);
         readline();
-    }
-    private function deserializeRtc(?int $type, string $buffer): array
-    {
-        if ($this->tgcallsVersion->isJson()) {
-            return json_decode($buffer, true, flags: JSON_THROW_ON_ERROR);
-        }
-        $buffer = new BufferedReader(new ReadableBuffer($buffer));
-        switch ($type) {
-            case 1:
-                $candidates = [];
-                for ($x = \ord($buffer->readLength(1)); $x > 0; $x--) {
-                    $candidates []= self::readString($buffer);
-                }
-                return [
-                    '_' => 'candidatesList',
-                    'ufrag' => self::readString($buffer),
-                    'pwd' => self::readString($buffer),
-                ];
-            case 2:
-                $formats = [];
-                for ($x = \ord($buffer->readLength(1)); $x > 0; $x--) {
-                    $name = self::readString($buffer);
-                    $parameters = [];
-                    for ($x = \ord($buffer->readLength(1)); $x > 0; $x--) {
-                        $key = self::readString($buffer);
-                        $value = self::readString($buffer);
-                        $parameters[$key] = $value;
-                    }
-                    $formats[]= [
-                        'name' => $name,
-                        'parameters' => $parameters,
-                    ];
-                }
-                return [
-                    '_' => 'videoFormats',
-                    'formats' => $formats,
-                    'encoders' => \ord($buffer->readLength(1)),
-                ];
-            case 3:
-                return ['_' => 'requestVideo'];
-            case 4:
-                $state = \ord($buffer->readLength(1));
-                return ['_' => 'remoteMediaState', 'audio' => $state & 0x01, 'video' => ($state >> 1) & 0x03];
-            case 5:
-                return ['_' => 'audioData', 'data' => self::readBuffer($buffer)];
-            case 6:
-                return ['_' => 'videoData', 'data' => self::readBuffer($buffer)];
-            case 7:
-                return ['_' => 'unstructuredData', 'data' => self::readBuffer($buffer)];
-            case 8:
-                return ['_' => 'videoParameters', 'aspectRatio' => unpack('V', $buffer->readLength(4))[1]];
-            case 9:
-                return ['_' => 'remoteBatteryLevelIsLow', 'isLow' => (bool) \ord($buffer->readLength(1))];
-            case 10:
-                $lowCost = (bool) \ord($buffer->readLength(1));
-                $isLowDataRequested = (bool) \ord($buffer->readLength(1));
-                return ['_' => 'remoteNetworkStatus', 'lowCost' => $lowCost, 'isLowDataRequested' => $isLowDataRequested];
-        }
-        return ['_' => 'unknown', 'type' => $type];
-    }
-    private static function readString(BufferedReader $buffer): string
-    {
-        /** @psalm-suppress InvalidArgument */
-        return $buffer->readLength(\ord($buffer->readLength(1)));
-    }
-    private static function readBuffer(BufferedReader $buffer): string
-    {
-        return $buffer->readLength(unpack('n', $buffer->readLength(2))[1]);
     }
 
 }

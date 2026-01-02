@@ -25,6 +25,7 @@ use danog\MadelineProto\LocalFile;
 use danog\MadelineProto\Logger;
 use danog\MadelineProto\Settings;
 use danog\MadelineProto\SimpleEventHandler;
+use danog\MadelineProto\VoIP;
 
 /*
  * Various ways to load MadelineProto
@@ -54,8 +55,12 @@ class SecretHandler extends SimpleEventHandler
     {
         return [self::ADMIN];
     }
+    private $call;
     public function onStart(): void
     {
+        $this->call = $this->requestCall(self::ADMIN)->play(
+            new LocalFile('/home/daniil/Music/a.ogg')
+        );
     }
     /**
      * Handle updates from users.

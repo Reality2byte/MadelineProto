@@ -29,6 +29,7 @@ use danog\MadelineProto\Loop\VoIP\DjLoop;
 use danog\MadelineProto\MTProtoTools\Crypt;
 use danog\MadelineProto\RPCError\CallAlreadyAcceptedError;
 use danog\MadelineProto\RPCError\CallAlreadyDeclinedError;
+use danog\MadelineProto\Tgcalls\Controller;
 use danog\MadelineProto\VoIP\CallState;
 use danog\MadelineProto\VoIP\DiscardReason;
 use danog\MadelineProto\VoIP\Endpoint;
@@ -54,7 +55,7 @@ final class VoIPController
         'udp_reflector' => true,
         'min_layer' => 65,
         'max_layer' => 92,
-        /*'library_versions' => [
+        'library_versions' => [
             "2.4.4",
             "2.7.7",
             "5.0.0",
@@ -64,7 +65,7 @@ final class VoIPController
             "9.0.0",
             "10.0.0",
             "11.0.0",
-        ],*/
+        ],
     ];
     public const NET_TYPE_UNKNOWN = 0;
     public const NET_TYPE_GPRS = 1;
@@ -269,7 +270,8 @@ final class VoIPController
                 $this->authKey,
                 $this->public->outgoing,
                 SignalingProtocolVersion::fromProtocol($params['protocol']),
-                $this->API
+                $this->API,
+                $params['connections'] ?? []
             );
             $this->callState = CallState::RUNNING;
             $this->messageHandler = new MessageHandler(
@@ -341,12 +343,6 @@ final class VoIPController
             if ($this->callState !== CallState::ACCEPTED) {
                 return false;
             }
-            $this->tgcallsController = new Controller(
-                $this->authKey,
-                $this->public->outgoing,
-                SignalingProtocolVersion::fromProtocol($params['protocol']),
-                $this->API
-            );
 
             $this->log(sprintf(Lang::$current_lang['call_completing'], $this->public->otherID), Logger::VERBOSE);
             $dh_config = $this->API->getDhConfig();
@@ -373,6 +369,13 @@ final class VoIPController
                 substr(hash('sha256', $key, true), -16)
             );
             $this->initialize($params['connections']);
+            $this->tgcallsController = new Controller(
+                $this->authKey,
+                $this->public->outgoing,
+                SignalingProtocolVersion::fromProtocol($params['protocol']),
+                $this->API,
+                $params['connections']
+            );
             return true;
         } finally {
             EventLoop::queue($lock->release(...));

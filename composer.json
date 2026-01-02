@@ -66,6 +66,7 @@
         "symfony/polyfill-php83": "^1.32"
     },
     "require-dev": {
+        "quasarstream/webrtc": "^1.0",
         "ext-ctype": "*",
         "danog/phpdoc": "^0.1.24",
         "phpunit/phpunit": "^9.6.29",
