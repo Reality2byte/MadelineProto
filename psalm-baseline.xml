@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<files psalm-version="dev-master@6d1a2239413f68665600834202ccf6605a42a97c">
+<files psalm-version="7.0.0-beta14@e66ca9901442421cbdec6c571899410922e22ff6">
   <file src="src/API.php">
     <ArgumentTypeCoercion>
       <code><![CDATA[$settings]]></code>
@@ -6135,9 +6135,6 @@
     <MixedAssignment>
       <code><![CDATA[$unserialized]]></code>
     </MixedAssignment>
-    <MixedOperand>
-      <code><![CDATA[Magic::$can_use_igbinary ? igbinary_serialize($object) : serialize($object)]]></code>
-    </MixedOperand>
     <MixedReturnStatement>
       <code><![CDATA[$unserialized]]></code>
     </MixedReturnStatement>
