@@ -58,7 +58,7 @@ final class Ast implements BuildMode
         return $id;
     }
 
-    public function finalize(array $outgoingCons, array $incomingCons, string $refMapFile, string $refMapFileJson): void
+    public function finalize(int $layer, array $outgoingCons, array $incomingCons, string $refMapFile, string $refMapFileJson): void
     {
         $locations = [];
 
@@ -103,6 +103,7 @@ final class Ast implements BuildMode
         }
         $value = [
             '_' => 'fileReferenceMap',
+            'layer' => $layer,
             'db_schema' => $dbSchema,
             'db_schema_json' => json_encode($dbSchemaJSON, flags: JSON_THROW_ON_ERROR),
             'locations' => $locations,
