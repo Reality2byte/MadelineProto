@@ -7,6 +7,11 @@ vector#1cb5c415 {t:Type} # [ t ] = Vector t;
 // Root
 fileReferenceMap#28834873 layer:int db_schema:string db_schema_json:string locations:Vector<Location> sources:Vector<Source> skipped:Vector<SkippedSource> actions:Vector<Action> = FileReferenceMap;
 
+traverseParam#91109f74 flags:# name:string is_flag:flags.0?true is_vector:flags.1?true = TraverseParam;
+
+traverseConstructor#db7c6cf5 predicate:string params:Vector<TraverseParam> = TraversePart;
+traverseMethod#93ba84c9 predicate:string params:Vector<TraverseParam> = TraversePart;
+
 locationIncoming#9e6d55cb predicate:string stored_constructor:string traverse:Vector<TraversePart> = Location;
 locationOutgoing#53d26b0e predicate:string stored_constructor:string traverse:Vector<TraversePart> = Location;
 
@@ -23,8 +28,6 @@ paramIsFlagFallback#202b77a1 fallback:TypedOp = ParamFlag;
 paramIsFlagPassthrough#1dc6e17d = ParamFlag;
 
 pathPart#8dc6ff46 constructor:string param:string flag:ParamFlag = PathPart;
-
-traversePart#54c5211a flags:# constructor:string param:string is_method:flags.0?true is_flag:flags.1?true is_vector:flags.2?true = TraversePart;
 
 path#0c3586a2 parts:Vector<PathPart> = Path;
 pathParent#58f13684 parts:Vector<PathPart> = Path;

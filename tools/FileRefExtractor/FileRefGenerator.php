@@ -491,12 +491,10 @@ final class FileRefGenerator
                             $stack[$pos][2] = $oldFlag | Path::FLAG_UNPACK_ARRAY;
                         }
                         if ($isMethod) {
-                            $stack[$pos][3] = true;
                             if (!$incoming) {
                                 $onStackEnd($stack);
                             }
                         } else {
-                            $stack[$pos][3] = false;
                             $recurse($onStackEnd, $t, $stack, $stackTypes, $incoming);
                         }
                         unset($stack[$pos]);
@@ -508,11 +506,11 @@ final class FileRefGenerator
 
             if ($incoming) {
                 foreach ($TL->getMethodsOfType($type, true) as $method => $data) {
-                    $stack[$pos] = [$method, '', 0, true];
+                    $stack[$pos] = [$method, '', 0];
                     $onStackEnd($stack);
                 }
                 foreach ($TL->getMethodsOfType("Vector<$type>", true) as $method => $data) {
-                    $stack[$pos] = [$method, '', Path::FLAG_UNPACK_ARRAY, true];
+                    $stack[$pos] = [$method, '', Path::FLAG_UNPACK_ARRAY];
                     $onStackEnd($stack);
                 }
             }
@@ -591,7 +589,7 @@ final class FileRefGenerator
                 continue;
             }
             $type = $TL->tl->getConstructors()->findByPredicate($constructor)['type'];
-            $stack = [[$constructor, 'file_reference', 0, false]];
+            $stack = [[$constructor, 'file_reference', 0]];
             $stackTypes = [$type => 1];
 
             $outgoingTraversalPairs = [];
@@ -601,11 +599,7 @@ final class FileRefGenerator
                         if ($pair[1] === 'file_reference') {
                             continue;
                         }
-                        $pairTraverse = Path::arrayPathToTraversePath($pair);
-                        $encoded = json_encode($pairTraverse);
-                        if (!isset($outgoingTraversalPairs[$encoded])) {
-                            $outgoingTraversalPairs[$encoded] = $pairTraverse;
-                        }
+                        $outgoingTraversalPairs[$pair[0]][$pair[1]] = $pair;
                     }
                 },
                 $type,
@@ -613,8 +607,6 @@ final class FileRefGenerator
                 $stackTypes,
                 false,
             );
-            ksort($outgoingTraversalPairs);
-            $outgoingTraversalPairs = array_values($outgoingTraversalPairs);
             $outgoingTraversalPairsByCons[$constructor] = $outgoingTraversalPairs;
         }
         unset($outgoingTraversalPairs);
@@ -623,7 +615,7 @@ final class FileRefGenerator
         $tmp = new Ast(blacklistedPredicates: $blacklistedPredicates, allowUnpacking: true, outputSchema: $pre);
         foreach ($incomingCons as $constructor => $_) {
             $type = ucfirst($constructor);
-            $stack = [[$constructor, 'file_reference', 0, false]];
+            $stack = [[$constructor, 'file_reference', 0]];
             $stackTypes = [$type => 1];
 
             $incomingTraversalPairs = [];
@@ -640,11 +632,7 @@ final class FileRefGenerator
                         $pair = $stack[$x];
 
                         if ($pair[1] !== 'file_reference') {
-                            $pairTraverse = Path::arrayPathToTraversePath($pair);
-                            $encoded = json_encode($pairTraverse);
-                            if (!isset($tmpPairs[$encoded])) {
-                                $tmpPairs[$encoded] = $pairTraverse;
-                            }
+                            $tmpPairs[$pair[0]][$pair[1]] = $pair;
                         }
 
                         foreach ($locations[$pair[0]] ?? [] as $op) {
@@ -669,7 +657,10 @@ final class FileRefGenerator
                         $slice[] = $pair;
                     }
                     if ($hadAnyNotNoop) {
-                        $incomingTraversalPairs += $tmpPairs;
+                        foreach ($tmpPairs as $cons => $fields) {
+                            $incomingTraversalPairs[$pair[0]] ??= [];
+                            $incomingTraversalPairs[$pair[0]] += $fields;
+                        }
                     }
                     if (!$hadAny) {
                         throw new AssertionError("Uncovered path: " . json_encode($stack));
@@ -718,9 +709,6 @@ final class FileRefGenerator
                 $stackTypes,
                 true,
             );
-
-            ksort($incomingTraversalPairs);
-            $incomingTraversalPairs = array_values($incomingTraversalPairs);
             $incomingTraversalPairsByCons[$constructor] = $incomingTraversalPairs;
         }
         unset($incomingTraversalPairs);
@@ -752,12 +740,54 @@ final class FileRefGenerator
             $layer,
             array_filter($outgoingCons),
             $incomingCons,
-            $incomingTraversalPairsByCons,
-            $outgoingTraversalPairsByCons,
+            self::fixupTraversalPairs($TL, $incomingTraversalPairsByCons),
+            self::fixupTraversalPairs($TL, $outgoingTraversalPairsByCons),
             $outputFile,
             $outputFileJson
         );
 
         echo("OK $layer!\n".PHP_EOL);
+    }
+
+    public static function fixupTraversalPairs(TLWrapper $TL, array $pairsByCons): array
+    {
+        $fixed = [];
+        foreach ($pairsByCons as $parentCons => $pairs) {
+            foreach ($pairs as $cons => $fields) {
+                $newFields = [];
+                foreach ($fields as $field => $part) {
+                    $newPart = [
+                        '_' => 'traverseParam',
+                        'name' => $field,
+                        'is_vector' => false,
+                        'is_flag' => false,
+                    ];
+                    if (isset($part[2])) {
+                        if ($part[2] instanceof TypedOp) {
+                            throw new \InvalidArgumentException('Cannot use TypedOp in traverse path');
+                        } elseif (\is_int($part[2])) {
+                            if ($part[2] & Path::FLAG_UNPACK_ARRAY) {
+                                $newPart['is_vector'] = true;
+                            }
+                            if ($part[2] & Path::FLAG_IF_ABSENT_ABORT) {
+                                $newPart['is_flag'] = true;
+                            }
+                            if ($part[2] & Path::FLAG_PASSTHROUGH) {
+                                $newPart['is_flag'] = true;
+                            }
+                        }
+                    }
+                    $newFields[] = $newPart;
+                }
+                Assert::notEmpty($newFields);
+
+                $fixed[$parentCons][] = [
+                    '_' => $TL->isConstructor($cons) ? 'traverseConstructor' : 'traverseMethod',
+                    'predicate' => $cons,
+                    'params' => $newFields,
+                ];
+            }
+        }
+        return $fixed;
     }
 }

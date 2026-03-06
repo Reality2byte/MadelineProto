@@ -60,6 +60,59 @@
             "type": "FileReferenceMap"
         },
         {
+            "id": "-1861181580",
+            "predicate": "traverseParam",
+            "params": [
+                {
+                    "name": "flags",
+                    "type": "#"
+                },
+                {
+                    "name": "name",
+                    "type": "string"
+                },
+                {
+                    "name": "is_flag",
+                    "type": "flags.0?true"
+                },
+                {
+                    "name": "is_vector",
+                    "type": "flags.1?true"
+                }
+            ],
+            "type": "TraverseParam"
+        },
+        {
+            "id": "-612602635",
+            "predicate": "traverseConstructor",
+            "params": [
+                {
+                    "name": "predicate",
+                    "type": "string"
+                },
+                {
+                    "name": "params",
+                    "type": "Vector<TraverseParam>"
+                }
+            ],
+            "type": "TraversePart"
+        },
+        {
+            "id": "-1816492855",
+            "predicate": "traverseMethod",
+            "params": [
+                {
+                    "name": "predicate",
+                    "type": "string"
+                },
+                {
+                    "name": "params",
+                    "type": "Vector<TraverseParam>"
+                }
+            ],
+            "type": "TraversePart"
+        },
+        {
             "id": "-1637001781",
             "predicate": "locationIncoming",
             "params": [
@@ -221,37 +274,6 @@
                 }
             ],
             "type": "PathPart"
-        },
-        {
-            "id": "1422205210",
-            "predicate": "traversePart",
-            "params": [
-                {
-                    "name": "flags",
-                    "type": "#"
-                },
-                {
-                    "name": "constructor",
-                    "type": "string"
-                },
-                {
-                    "name": "param",
-                    "type": "string"
-                },
-                {
-                    "name": "is_method",
-                    "type": "flags.0?true"
-                },
-                {
-                    "name": "is_flag",
-                    "type": "flags.1?true"
-                },
-                {
-                    "name": "is_vector",
-                    "type": "flags.2?true"
-                }
-            ],
-            "type": "TraversePart"
         },
         {
             "id": "204834466",

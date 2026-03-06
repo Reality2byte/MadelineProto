@@ -35,7 +35,7 @@ final readonly class Path
         private ?string $customName = null,
     ) {
         foreach ($path as $k => $elem) {
-            if (\count($elem) !== 2 && \count($elem) !== 3 && \count($elem) !== 4) {
+            if (\count($elem) !== 2 && \count($elem) !== 3) {
                 throw new \InvalidArgumentException('Invalid path part: ' . json_encode($path));
             }
             if (isset($elem[2])) {
@@ -87,33 +87,6 @@ final readonly class Path
         );
     }
 
-    public static function arrayPathToTraversePath(array $part): array
-    {
-        $newPart = [
-            '_' => 'traversePart',
-            'constructor' => $part[0],
-            'is_method' => $part[3] ?? false,
-            'is_vector' => false,
-            'is_flag' => false,
-            'param' => $part[1],
-        ];
-        if (isset($part[2])) {
-            if ($part[2] instanceof TypedOp) {
-                throw new \InvalidArgumentException('Cannot use TypedOp in traverse path');
-            } elseif (\is_int($part[2])) {
-                if ($part[2] & self::FLAG_UNPACK_ARRAY) {
-                    $newPart['is_vector'] = true;
-                }
-                if ($part[2] & self::FLAG_IF_ABSENT_ABORT) {
-                    $newPart['is_flag'] = true;
-                }
-                if ($part[2] & self::FLAG_PASSTHROUGH) {
-                    $newPart['is_flag'] = true;
-                }
-            }
-        }
-        return $newPart;
-    }
     public function buildPath(TLContext $tl, string $extractor): string
     {
         $new = [];
