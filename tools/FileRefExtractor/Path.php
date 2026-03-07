@@ -92,10 +92,13 @@ final readonly class Path
         $new = [];
         $finalK = \count($this->path) - 1;
         foreach ($this->path as $k => $part) {
+            $consType = $tl->tl->getConstructorOrMethod($part[0])['type'];
             $newPart = [
                 '_' => 'pathPart',
+                'type' => $consType,
                 'constructor' => $part[0],
                 'param' => $part[1],
+                'param_type' => $part[1] === '' ? $consType : $tl->tl->getParamType($part[0], $part[1]),
                 'flag' => ['_' => 'paramNotFlag'],
             ];
             if (isset($part[2])) {

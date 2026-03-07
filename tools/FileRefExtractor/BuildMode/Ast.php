@@ -21,6 +21,7 @@ namespace danog\MadelineProto\FileRefExtractor\BuildMode;
 use AssertionError;
 use danog\MadelineProto\FileRefExtractor\BuildMode;
 use danog\MadelineProto\FileRefExtractor\TLContext;
+use danog\MadelineProto\FileRefExtractor\TLWrapper;
 use danog\MadelineProto\Magic;
 use danog\MadelineProto\MTProto;
 use danog\MadelineProto\Settings\TLSchema;
@@ -43,12 +44,22 @@ final class Ast implements BuildMode
     private array $skipped = [];
     private array $actions = [];
     private ?string $needsParent = null;
+    private array $needsParentList = [];
 
     public function __construct(
         private readonly array $blacklistedPredicates,
         public readonly bool $allowUnpacking,
         private array $outputSchema = []
     ) {
+    }
+
+    public function getSources(): array
+    {
+        return $this->output;
+    }
+    public function getNeedsParentList(): array
+    {
+        return $this->needsParentList;
     }
 
     public static function crc(string $schema): string
@@ -60,6 +71,7 @@ final class Ast implements BuildMode
     }
 
     public function finalize(
+        TLWrapper $tl,
         int $layer,
         array $outgoingCons,
         array $incomingCons,
@@ -76,10 +88,10 @@ final class Ast implements BuildMode
             $locations[] = [
                 '_' => 'locationOutgoing',
                 'predicate' => $predicate,
+                'type' => $tl->getConstructorOrMethod($predicate)['type'],
                 //'id_field' => $id,
                 //'file_reference_field' => $fileref,
                 'stored_constructor' => $cons,
-                'traverse' => $outgoingTraversalPairs[$predicate],
             ];
         }
         foreach ($incomingCons as $predicate => [$cons]) {
@@ -87,10 +99,10 @@ final class Ast implements BuildMode
             $locations[] = [
                 '_' => 'locationIncoming',
                 'predicate' => $predicate,
+                'type' => $tl->getConstructorOrMethod($predicate)['type'],
                 //'id_field' => $id,
                 //'file_reference_field' => $fileref,
                 'stored_constructor' => $cons,
-                'traverse' => $incomingTraversalPairs[$predicate],
             ];
         }
         $dbSchema = "boolFalse#bc799737 = Bool;\nboolTrue#997275b5 = Bool;\ntrue#3fedd339 = True;\nvector#1cb5c415 {t:Type} # [ t ] = Vector t;\n\n";
@@ -116,10 +128,11 @@ final class Ast implements BuildMode
             'layer' => $layer,
             'db_schema' => $dbSchema,
             'db_schema_json' => json_encode($dbSchemaJSON, flags: JSON_THROW_ON_ERROR),
-            'locations' => $locations,
-            'sources' => $this->output,
-            'skipped' => $this->skipped,
-            'actions' => $actions,
+            //'locations' => $locations,
+            'traversers_incoming' => $incomingTraversalPairs,
+            'traversers_outgoing' => $outgoingTraversalPairs,
+            'skipped_incoming_sources' => $this->skipped,
+            'refresh_actions' => $actions,
         ];
         Magic::start(false);
 
@@ -271,7 +284,7 @@ final class Ast implements BuildMode
                 $this->actions[$constructor]['action'] = $existingAction;
             } else {
                 $this->actions[$constructor] = [
-                    '_' => 'action',
+                    '_' => 'refreshAction',
                     'stored_constructor' => $constructor,
                     'action' => $action,
                 ];
@@ -289,8 +302,9 @@ final class Ast implements BuildMode
             if ($this->needsParent !== null) {
                 $out['needs_parent'] = $this->needsParent;
                 $out['parent_is_constructor'] = $ctx->tl->isConstructor($this->needsParent);
+                $this->needsParentList[$this->needsParent] = true;
             }
-            $this->output[] = $out;
+            $this->output[$ctx->position][] = $out;
 
             $this->storedFlags = 0;
             $this->stored = [];

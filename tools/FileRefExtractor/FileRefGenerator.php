@@ -658,8 +658,10 @@ final class FileRefGenerator
                     }
                     if ($hadAnyNotNoop) {
                         foreach ($tmpPairs as $cons => $fields) {
-                            $incomingTraversalPairs[$pair[0]] ??= [];
-                            $incomingTraversalPairs[$pair[0]] += $fields;
+                            $incomingTraversalPairs[$cons] ??= [];
+                            foreach ($fields as $field => $part) {
+                                $incomingTraversalPairs[$cons][$field] = $part;
+                            }
                         }
                     }
                     if (!$hadAny) {
@@ -736,12 +738,14 @@ final class FileRefGenerator
             }
         }
 
+        $outgoingCons = array_filter($outgoingCons);
         $output->finalize(
+            $TL,
             $layer,
-            array_filter($outgoingCons),
+            $outgoingCons,
             $incomingCons,
-            self::fixupTraversalPairs($TL, $incomingTraversalPairsByCons),
-            self::fixupTraversalPairs($TL, $outgoingTraversalPairsByCons),
+            self::fixupTraversalPairs($output, $TL, $incomingCons, $incomingTraversalPairsByCons, true),
+            self::fixupTraversalPairs($output, $TL, $outgoingCons, $outgoingTraversalPairsByCons, false),
             $outputFile,
             $outputFileJson
         );
@@ -749,43 +753,148 @@ final class FileRefGenerator
         echo("OK $layer!\n".PHP_EOL);
     }
 
-    public static function fixupTraversalPairs(TLWrapper $TL, array $pairsByCons): array
+    public static function fixupTraversalPairs(Ast $output, TLWrapper $TL, array $locations, array $pairsByCons, bool $isIncoming): array
     {
-        $fixed = [];
+        $pairsMerged = [];
         foreach ($pairsByCons as $parentCons => $pairs) {
             foreach ($pairs as $cons => $fields) {
-                $newFields = [];
+                Assert::notEmpty($fields, "No fields for $cons in $parentCons");
                 foreach ($fields as $field => $part) {
-                    $newPart = [
-                        '_' => 'traverseParam',
-                        'name' => $field,
-                        'is_vector' => false,
-                        'is_flag' => false,
-                    ];
-                    if (isset($part[2])) {
-                        if ($part[2] instanceof TypedOp) {
-                            throw new \InvalidArgumentException('Cannot use TypedOp in traverse path');
-                        } elseif (\is_int($part[2])) {
-                            if ($part[2] & Path::FLAG_UNPACK_ARRAY) {
-                                $newPart['is_vector'] = true;
-                            }
-                            if ($part[2] & Path::FLAG_IF_ABSENT_ABORT) {
-                                $newPart['is_flag'] = true;
-                            }
-                            if ($part[2] & Path::FLAG_PASSTHROUGH) {
-                                $newPart['is_flag'] = true;
-                            }
+                    $pairsMerged[$cons][$field] = $part;
+                }
+            }
+        }
+
+        if ($isIncoming) {
+            $sources = $output->getSources();
+            $parents = $output->getNeedsParentList();
+        }
+
+        $fixed = [];
+        foreach ($locations as $predicate => [$cons]) {
+            if ($isIncoming) {
+                $fixed []= [
+                    '_' => 'traverseCommitSourceLocation',
+                    'type' => $TL->getConstructorOrMethod($predicate)['type'],
+                    'predicate' => $predicate,
+                    'stored_constructor' => $cons,
+                    'push_sources' => $sources[$predicate] ?? [],
+                ];
+                unset($sources[$predicate]);
+            } else {
+                $fixed []= [
+                    '_' => 'traverseSwapLocation',
+                    'type' => $TL->getConstructorOrMethod($predicate)['type'],
+                    'predicate' => $predicate,
+                    'stored_constructor' => $cons,
+                ];
+            }
+        }
+
+        foreach ($pairsMerged as $cons => $fields) {
+
+            $consIsConstructor = $TL->isConstructor($cons);
+            $order = [];
+            $paramTypes = [];
+            foreach ($TL->getConstructorOrMethod($cons)['params'] as $idx => $param) {
+                $order[$param['name']] = $idx;
+                $paramTypes[$param['name']] = $param['subtype'] ?? $param['type'];
+            }
+
+            $newFields = [];
+            $hasReturn = false;
+            foreach ($fields as $field => $part) {
+                if ($field === '') {
+                    $hasReturn = true;
+                    continue;
+                }
+                $newPart = [
+                    '_' => 'traverseParam',
+                    'name' => $field,
+                    'type' => $paramTypes[$field],
+                    'is_vector' => false,
+                    'is_flag' => false,
+                ];
+                if (isset($part[2])) {
+                    if ($part[2] instanceof TypedOp) {
+                        throw new \InvalidArgumentException('Cannot use TypedOp in traverse path');
+                    } elseif (\is_int($part[2])) {
+                        if ($part[2] & Path::FLAG_UNPACK_ARRAY) {
+                            $newPart['is_vector'] = true;
+                        }
+                        if ($part[2] & Path::FLAG_IF_ABSENT_ABORT) {
+                            $newPart['is_flag'] = true;
+                        }
+                        if ($part[2] & Path::FLAG_PASSTHROUGH) {
+                            $newPart['is_flag'] = true;
                         }
                     }
-                    $newFields[] = $newPart;
                 }
-                Assert::notEmpty($newFields);
+                $newFields[] = $newPart;
+            }
+            usort($newFields, static fn ($a, $b) => $order[$a['name']] <=> $order[$b['name']]);
 
-                $fixed[$parentCons][] = [
-                    '_' => $TL->isConstructor($cons) ? 'traverseConstructor' : 'traverseMethod',
-                    'predicate' => $cons,
-                    'params' => $newFields,
-                ];
+            if ($isIncoming) {
+                if ($consIsConstructor) {
+                    Assert::false($hasReturn, "Constructor $cons has a return value, cannot be used in incoming traversal");
+                    Assert::notEmpty($newFields, "Constructor $cons does not have fields in traversal pairs but is used as a constructor");
+
+                    $fixed[] = [
+                        '_' => 'traverseIncomingConstructor',
+                        'predicate' => $cons,
+                        'type' => $TL->getConstructorOrMethod($cons)['type'],
+                        'params' => $newFields,
+                        'push_sources' => $sources[$cons] ?? [],
+                        'is_needed_parent' => isset($parents[$cons]),
+                    ];
+                    unset($sources[$cons], $parents[$cons]);
+
+                } else {
+                    Assert::notEmpty($hasReturn, "Method $cons does not have a return value, cannot be used in incoming traversal");
+                    Assert::isEmpty($newFields, "Method $cons has fields in traversal pairs but is used as a method result");
+
+                    $fixed[] = [
+                        '_' => 'traverseMethodResult',
+                        'name' => $cons,
+                        'push_sources' => $sources[$cons] ?? [],
+                        'is_needed_parent' => isset($parents[$cons]),
+                    ];
+                    unset($sources[$cons], $parents[$cons]);
+
+                }
+            } else {
+                if ($consIsConstructor) {
+                    Assert::false($hasReturn, "Constructor $cons has a return value, cannot be used in outgoing traversal");
+                    Assert::notEmpty($newFields, "Constructor $cons does not have fields in traversal pairs but is used as a constructor");
+
+                    $fixed[] = [
+                        '_' => 'traverseOutgoingConstructor',
+                        'predicate' => $cons,
+                        'type' => $TL->getConstructorOrMethod($cons)['type'],
+                        'params' => $newFields,
+                    ];
+                } else {
+                    Assert::false($hasReturn, "Method $cons has a return value, cannot be used in outgoing traversal");
+                    Assert::notEmpty($newFields, "Method $cons does not have fields in traversal pairs but is used as a method call");
+
+                    $fixed[] = [
+                        '_' => 'traverseMethodCall',
+                        'name' => $cons,
+                        'params' => $newFields,
+                    ];
+                }
+            }
+        }
+
+        if ($isIncoming) {
+            foreach ($sources as $cons => $sourceList) {
+                foreach ($sourceList as $source) {
+                    $source = json_encode($source);
+                    throw new AssertionError("Source $source for $cons was not included in traversal pairs");
+                }
+            }
+            foreach ($parents as $cons => $_) {
+                throw new AssertionError("Needed parent $cons was not included in traversal pairs");
             }
         }
         return $fixed;
