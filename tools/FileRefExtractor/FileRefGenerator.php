@@ -839,10 +839,13 @@ final class FileRefGenerator
                     Assert::false($hasReturn, "Constructor $cons has a return value, cannot be used in incoming traversal");
                     Assert::notEmpty($newFields, "Constructor $cons does not have fields in traversal pairs but is used as a constructor");
 
+                    $consT = $TL->getConstructorOrMethod($cons)['type'];
+                    Assert::notEq($consT, 'Updates', "Constructor $cons has type Updates, cannot be used in incoming traversal as it is not a message/container constructor");
+
                     $fixed[] = [
                         '_' => 'traverseIncomingConstructor',
                         'predicate' => $cons,
-                        'type' => $TL->getConstructorOrMethod($cons)['type'],
+                        'type' => $consT,
                         'params' => $newFields,
                         'push_sources' => $sources[$cons] ?? [],
                         'is_needed_parent' => isset($parents[$cons]),
