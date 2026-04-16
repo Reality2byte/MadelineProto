@@ -444,12 +444,18 @@ final class FileRefGenerator
 
         $locations['account.uploadTheme'][] = new Noop('A freshly uploaded theme file will obtain a context only once it is created via account.createTheme');
 
-        $constructorList = $TL->tl->getConstructors()->by_id;
-        $mergedConstructorMethods = [
-            ...$constructorList,
-            ...$TL->tl->getMethods()->by_id,
-        ];
-        $recurse = static function (Closure $onStackEnd, string $type, array &$stack, array &$stackTypes, bool $incoming) use ($TL, &$recurse, $mergedConstructorMethods, $constructorList): void {
+        $incomingList = [];
+        $outgoingList = $TL->tl->getMethods()->by_id;
+        foreach ($TL->tl->getConstructors()->by_id as $k => $constructor) {
+            if (str_starts_with($constructor['predicate'], 'input')
+                && ctype_upper(substr($constructor['predicate'], strlen('input'), 1))
+            ) {
+                $outgoingList[$k] = $constructor;
+            } else {
+                $incomingList[$k] = $constructor;
+            }
+        }
+        $recurse = static function (Closure $onStackEnd, string $type, array &$stack, array &$stackTypes, bool $incoming) use ($TL, &$recurse, $outgoingList, $incomingList): void {
             if ($incoming) {
                 if ($type === 'Update' || $type === 'Updates') {
                     $onStackEnd($stack);
@@ -461,7 +467,7 @@ final class FileRefGenerator
             }
 
             $pos = \count($stack);
-            foreach ($incoming ? $constructorList : $mergedConstructorMethods as $constructor) {
+            foreach ($incoming ? $incomingList : $outgoingList as $constructor) {
                 $predicate = $constructor['predicate'] ?? $constructor['method'];
                 if ($predicate === 'updateShortMessage' || $predicate === 'updateShortChatMessage' || $predicate === 'updateShortSentMessage') {
                     // Assume these are converted to message constructors by the client.
