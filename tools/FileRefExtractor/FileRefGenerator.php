@@ -67,7 +67,6 @@ final class FileRefGenerator
             $locations[$constructor][] = new GetMessageOp(
                 new GetInputPeerOp(new Path([[$constructor, 'peer_id']])),
                 new CopyOp([[$constructor, 'id']]),
-                $constructor === 'message' ? new CopyOp([[$constructor, 'from_scheduled', Path::FLAG_PASSTHROUGH]]) : null,
                 $constructor === 'message' ? new CopyOp([[$constructor, 'quick_reply_shortcut_id', Path::FLAG_PASSTHROUGH]]) : null,
                 'fileSourceMessage',
             );
@@ -333,7 +332,6 @@ final class FileRefGenerator
         $locations['updateMessagePoll'][] = new GetMessageOp(
             new GetInputPeerOp(new Path([['updateMessagePoll', 'peer', Path::FLAG_IF_ABSENT_ABORT]])),
             new CopyOp([['updateMessagePoll', 'msg_id', Path::FLAG_IF_ABSENT_ABORT]]),
-            null,
             null,
             'fileSourceMessage',
         );
