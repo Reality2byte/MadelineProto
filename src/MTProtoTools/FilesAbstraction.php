@@ -1760,6 +1760,7 @@ trait FilesAbstraction
             Audio::class => [
                 '_' => 'inputMediaUploadedDocument',
                 'file' => $file,
+                'ttl_seconds' => $ttl,
                 'thumb' => $thumb,
                 'mime_type' => $mimeType,
                 'attributes' => $attributes,
@@ -1767,6 +1768,7 @@ trait FilesAbstraction
             Voice::class => [
                 '_' => 'inputMediaUploadedDocument',
                 'file' => $file,
+                'ttl_seconds' => $ttl,
                 'mime_type' => $mimeType,
                 'attributes' => $attributes,
             ],
@@ -1811,13 +1813,19 @@ trait FilesAbstraction
             'media' => $media,
             'cancellation' => $cancellation,
         ];
-        $res = $this->methodCallAsyncRead(
-            'messages.uploadMedia',
-            $params
-        );
-        $params['media'] = $res;
-        if ($uploadOnly) {
-            return $this->wrapMedia($res);
+        if ($ttl) {
+            if ($uploadOnly) {
+                throw new AssertionError("Can't upload only for media with TTL!");
+            }
+        } else {
+            $res = $this->methodCallAsyncRead(
+                'messages.uploadMedia',
+                $params
+            );
+            $params['media'] = $res;
+            if ($uploadOnly) {
+                return $this->wrapMedia($res);
+            }
         }
         $res = $this->wrapMessage($this->extractMessage($this->methodCallAsyncRead(
             'messages.sendMedia',
