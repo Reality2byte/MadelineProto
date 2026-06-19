@@ -1154,12 +1154,16 @@ trait Files
         if ($params) {
             $previous_promise = true;
             $promises = [];
+            $finished = false;
             foreach ($params as $key => $param) {
                 $cancellation?->throwIfRequested();
                 $param['previous_promise'] = $previous_promise;
                 $previous_promise = async($this->downloadPart(...), $messageMedia, $cdn, $datacenter, $old_dc, $ige, $cb, $param, $callable, $seekable, $cancellation)->ignore();
-                $previous_promise->map(static function (int $res) use (&$size): void {
+                $previous_promise->map(static function (int $res) use (&$size, &$finished): void {
                     $size += $res;
+                    if ($res === 0) {
+                        $finished = true;
+                    }
                 })->ignore();
                 $promises[] = $previous_promise;
                 if (\count($promises) === $parallel_chunks) {
@@ -1170,6 +1174,9 @@ trait Files
                             unset($promises[$k]);
                             break;
                         }
+                    }
+                    if ($finished) {
+                        break;
                     }
                 }
                 if (!($key % $parallel_chunks)) {
