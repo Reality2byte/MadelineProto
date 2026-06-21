@@ -81,7 +81,6 @@ final class FileRefGenerator
             'fileSourceScheduledMessage'
         );
 
-
         $locations['message'][] = new CallOp(
             'messages.getScheduledMessages',
             [
@@ -465,6 +464,9 @@ final class FileRefGenerator
             }
         }
 
+        foreach (['updateChatUserTyping', 'updateChannelUserTyping', 'updateUserTyping'] as $type) {
+            $locations[$type][] = new Noop('Documents encountered in rich text message live drafts are ephemeral');
+        }
         $locations['messages.getCustomEmojiDocuments'][] = new Noop("Do not store file references in this context");
 
         $locations['account.uploadTheme'][] = new Noop('A freshly uploaded theme file will obtain a context only once it is created via account.createTheme');
